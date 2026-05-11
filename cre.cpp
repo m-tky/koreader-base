@@ -1976,7 +1976,16 @@ static int getWordFromPosition(lua_State *L) {
 	int y_offset = tv->GetPos() - (tv->getPageHeaderHeight() + margin.top) * (tv->getViewMode()==DVM_PAGES);
 
 	LVPageWordSelector sel(tv);
-	sel.selectWord(x - x_offset, y + y_offset);
+	if (tv->isVerticalText()) {
+		// Vertical-rl: word marks are in screen coords (via docToWindowPoint).
+		// LVPageWordSelector::selectWord(x, y) uses screen coords for findNearestWord,
+		// so pass the original screen position directly (no margin subtraction needed
+		// for vertical text since columns are identified by x, not margin-relative).
+		// TODO (Phase 2): per-element writing mode for mixed-mode documents.
+		sel.selectWord(x, y);
+	} else {
+		sel.selectWord(x - x_offset, y + y_offset);
+	}
 
 	ldomWordEx * word = sel.getSelectedWord();
 	if (word) {
