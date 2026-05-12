@@ -2438,6 +2438,11 @@ bool docToWindowRect(LVDocView *tv, lvRect &rc) {
         bottomInPage = true;
     }
     if (topInPage && bottomInPage) {
+        // For vertical-rl text, increasing doc_y → decreasing screen_x.
+        // After conversion, the rect's left/right may be swapped. Normalize.
+        if (tv->isVerticalText() && rc.left > rc.right) {
+            int tmp = rc.left; rc.left = rc.right; rc.right = tmp;
+        }
         return true;
     }
     else if (bottomInPage && !topInPage) {
@@ -2454,6 +2459,9 @@ bool docToWindowRect(LVDocView *tv, lvRect &rc) {
                 }
             }
             rc.setTopLeft(topLeft);
+            if (tv->isVerticalText() && rc.left > rc.right) {
+                int tmp = rc.left; rc.left = rc.right; rc.right = tmp;
+            }
             return true;
         }
     }
@@ -2463,6 +2471,9 @@ bool docToWindowRect(LVDocView *tv, lvRect &rc) {
         bottomRight = rc.bottomRight();
         if (tv->docToWindowPoint(bottomRight, true, true)) {
             rc.setBottomRight(bottomRight);
+            if (tv->isVerticalText() && rc.left > rc.right) {
+                int tmp = rc.left; rc.left = rc.right; rc.right = tmp;
+            }
             return true;
         }
     }
