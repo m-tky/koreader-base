@@ -2667,7 +2667,8 @@ static int getWordBoxesFromPositions(lua_State *L) {
 		lua_createtable(L, 0, 4); // first line box
 		for (int i=0; i<words.length(); i++) {
 			if (ldomXRange(words[i]).getRectEx(wordRect)) {
-				if (!docToWindowRect(tv, wordRect)) continue;//docToWindowRect returns false means it is not on current showing page.
+				bool in_page = docToWindowRect(tv, wordRect);
+				if (!in_page) continue;//docToWindowRect returns false means it is not on current showing page.
 				if (wordRect.left < lastx) {
 					lua_pushLineRect(L, lineRect.left, lineRect.top,
 									    lineRect.right, lineRect.bottom, lcount++);
