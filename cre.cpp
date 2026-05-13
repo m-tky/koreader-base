@@ -741,6 +741,12 @@ static int isBuiltDomStale(lua_State *L) {
     return 1;
 }
 
+static int isVerticalText(lua_State *L) {
+    CreDocument *doc = (CreDocument*) luaL_checkudata(L, 1, "credocument");
+    lua_pushboolean(L, doc->text_view->isVerticalText());
+    return 1;
+}
+
 static int hasCacheFile(lua_State *L) {
     CreDocument *doc = (CreDocument*) luaL_checkudata(L, 1, "credocument");
     lua_pushboolean(L, doc->dom_doc->hasCacheFile());
@@ -4441,6 +4447,7 @@ static const struct luaL_Reg credocument_meth[] = {
     {"setCallback", setCallback},
     /* --- control methods ---*/
     {"isBuiltDomStale", isBuiltDomStale},
+    {"isVerticalText", isVerticalText},
     {"hasCacheFile", hasCacheFile},
     {"isCacheFileStale", isCacheFileStale},
     {"invalidateCacheFile", invalidateCacheFile},
