@@ -747,6 +747,23 @@ static int isVerticalText(lua_State *L) {
     return 1;
 }
 
+// Vertical bleed counters defined in lvtextfm_layout_h.cpp (compiled via lvtextfm.cpp).
+extern void ltext_reset_vert_bleed();
+extern void ltext_get_vert_bleed(int *count_out, int *max_px_out);
+
+static int resetVertBleedCounters(lua_State *L) {
+    ltext_reset_vert_bleed();
+    return 0;
+}
+
+static int getVertBleedStats(lua_State *L) {
+    int count, max_px;
+    ltext_get_vert_bleed(&count, &max_px);
+    lua_pushinteger(L, count);
+    lua_pushinteger(L, max_px);
+    return 2;
+}
+
 static int hasCacheFile(lua_State *L) {
     CreDocument *doc = (CreDocument*) luaL_checkudata(L, 1, "credocument");
     lua_pushboolean(L, doc->dom_doc->hasCacheFile());
@@ -4448,6 +4465,8 @@ static const struct luaL_Reg credocument_meth[] = {
     /* --- control methods ---*/
     {"isBuiltDomStale", isBuiltDomStale},
     {"isVerticalText", isVerticalText},
+    {"resetVertBleedCounters", resetVertBleedCounters},
+    {"getVertBleedStats", getVertBleedStats},
     {"hasCacheFile", hasCacheFile},
     {"isCacheFileStale", isCacheFileStale},
     {"invalidateCacheFile", invalidateCacheFile},
