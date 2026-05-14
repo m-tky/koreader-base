@@ -2216,6 +2216,31 @@ static int getTextFromPositions(lua_State *L) {
                     // in the right margin.
                     r.getEnd().prevVisibleChar(false); // thisBlockOnly=false
                 }
+                else if ( tv->isVerticalText()
+                          && glyphpt.x + glyph_rect.height() / 2 <= refpt.x ) {
+                    // Vertical-rl: glyph is in a more-leftward column.  Fire when refpt
+                    // is past the midpoint between K+1 and K (glyph_rect.height() is
+                    // the column advance = distance between adjacent columns' screen_x).
+                    // Using /2 matches getNodeByPoint's nearest-char logic: if refpt is
+                    // past the midpoint it would map to column K, not K+1.
+                    //
+                    // Walk backward until we reach a char in column K (same or
+                    // more-rightward than refpt).  One prevVisibleChar call is not
+                    // enough when offset > 0: it only decrements within the same text
+                    // node, and setOffset(+1) would undo it.
+                    for (int guard = 0; guard < 200; guard++) {
+                        if (!r.getEnd().prevVisibleChar(false)) break;
+                        lvRect cr2;
+                        if (!r.getEnd().getRectEx(cr2, false)) break;
+                        lvPoint cp2 = cr2.topLeft();
+                        if (!tv->docToWindowPoint(cp2)) break;
+                        // Stop when the backed-up char is in column K or earlier
+                        // (same screen_x as refpt or rightward).  Use the same /2
+                        // midpoint tolerance so we stop at K's chars even when
+                        // refpt is in the inter-column gap (slightly left of K's x).
+                        if (cp2.x + glyph_rect.height() / 2 >= refpt.x) break;
+                    }
+                }
             }
             // For reference (and futur tests if we tweak all this), some issues noticed
             // that seem fixed with the above:
@@ -2258,8 +2283,12 @@ static int getTextFromPositions(lua_State *L) {
         if ( r.getStart().isVisibleWordChar() && !r.getStart().isVisibleWordStart()) {
             r.getStart().prevVisibleWordStart(true);
         }
-        if ( r.getEnd().isVisibleWordChar() && !r.getEnd().isVisibleWordStart()) {
-            // As above (don't grab next CJK)
+        if ( r.getEnd().isVisibleWordChar() && !r.getEnd().isVisibleWordStart()
+                && !tv->isVerticalText() ) {
+            // As above (don't grab next CJK).
+            // Skip for vertical-rl: a CJK char at the bottom of a column
+            // would advance into the NEXT column's top, creating an
+            // unwanted overflow sbox at the top of the adjacent column.
             r.getEnd().nextVisibleWordEnd(true);
         }
     }
@@ -2512,6 +2541,63 @@ void lua_pushSegmentsFromRange(lua_State *L, CreDocument *doc, ldomXRange *range
     LVDocView *tv = doc->text_view;
     LVArray<lvRect> rects;
     range->getSegmentRects(rects, includeImages);
+
+    // Vertical-rl post-processing:
+    // getTextFromPositions advances the end xpointer by +1 so that the selected
+    // text is correctly included in the range [start, end).  For vertical-rl
+    // this +1 often crosses into the next (leftward) column, which causes
+    // getSegmentRects to produce:
+    //
+    // (A) An overflow rect at the TOP of column K+1 (zero or tiny height).
+    //     Detected: its .top (= column K+1's horizontal advance) > the last
+    //     selected character's .top (= column K's advance).
+    //
+    // (B) A truncated rect for column K: its .right (vertical bottom of the
+    //     selection within column K) misses the last char's height because
+    //     getRectEx returns a zero-width rect when m_advance=0 (P8 HarfBuzz
+    //     bug), and lvRect::extend() bails out on empty rects.
+    //
+    // Fix: obtain "de"'s rect directly (offset-1 from the range end), then
+    //   (A) drop any trailing rects whose column advance > "de"'s column, and
+    //   (B) extend the last remaining rect's .right to "de"'s .right.
+    if (tv->isVerticalText() && rects.length() > 0) {
+        ldomXPointerEx rangeEnd = range->getEnd();
+        // Find "de" = the last character actually IN the selection.
+        // rangeEnd points to the char AFTER "de" (set by setOffset+1 in
+        // getTextFromPositions).  Two cases:
+        //   a) rangeEnd.offset > 0: "de" is at offset-1 in the same text node.
+        //   b) rangeEnd.offset == 0: "de" is the last char of the previous text
+        //      node (e.g. end of a <p>); use prevVisibleChar to find it.
+        lvRect deRect;
+        bool de_found = false;
+        if (rangeEnd.getOffset() > 0) {
+            ldomXPointerEx dePtr = rangeEnd;
+            dePtr.setOffset(rangeEnd.getOffset() - 1);
+            de_found = dePtr.getRect(deRect, true);
+        } else {
+            ldomXPointerEx prevPtr = rangeEnd;
+            if (prevPtr.prevVisibleChar(false))
+                de_found = prevPtr.getRect(deRect, true);
+        }
+        if (de_found) {
+            // (A) Remove overflow rects whose column advance (.top) > "de"'s column.
+            while (rects.length() > 0 &&
+                   rects[rects.length()-1].top > deRect.top) {
+                rects.remove(rects.length()-1);
+            }
+            // (B) Extend the last rect's .right to include "de"'s full height.
+            // When m_advance=0 (P8 bug), deRect.right == deRect.left (zero width);
+            // use deRect.left+1 as minimum so the char is not clipped.
+            if (rects.length() > 0) {
+                lvRect & last = rects[rects.length()-1];
+                int de_right = (deRect.right > deRect.left)
+                               ? deRect.right : deRect.left + 1;
+                if (last.right < de_right)
+                    last.right = de_right;
+            }
+        }
+    }
+
     int lcount = 1;
     for (int i=0; i<rects.length(); i++) {
         lvRect r = rects[i];
