@@ -2006,6 +2006,9 @@ static int getLinkFromPosition(lua_State *L) {
 	return 1;
 }
 
+// Forward declaration — defined below (after getTextFromPositions helpers).
+bool docToWindowRect(LVDocView *tv, lvRect &rc);
+
 static int getWordFromPosition(lua_State *L) {
 	CreDocument *doc = (CreDocument*) luaL_checkudata(L, 1, "credocument");
 	int x = luaL_checkint(L, 2);
@@ -2034,22 +2037,45 @@ static int getWordFromPosition(lua_State *L) {
 		ldomXRange range = word->getRange();
 		if (range.getRectEx(rect)) {
 			lua_createtable(L, 0, 5); // new word box
-
 			lua_pushstring(L, "word");
 			lua_pushstring(L, UnicodeToLocal(word->getText()).c_str());
 			lua_rawset(L, -3);
-			lua_pushstring(L, "x0");
-			lua_pushinteger(L, rect.left + x_offset);
-			lua_rawset(L, -3);
-			lua_pushstring(L, "y0");
-			lua_pushinteger(L, rect.top - y_offset);
-			lua_rawset(L, -3);
-			lua_pushstring(L, "x1");
-			lua_pushinteger(L, rect.right + x_offset);
-			lua_rawset(L, -3);
-			lua_pushstring(L, "y1");
-			lua_pushinteger(L, rect.bottom - y_offset);
-			lua_rawset(L, -3);
+			if (tv->isVerticalText()) {
+				// In vertical-rl (Y=X swap), getRectEx returns doc-space coords:
+				//   rect.left/right = doc_x  (inline direction → screen_y)
+				//   rect.top/bottom = doc_y  (block/column direction → screen_x)
+				// Use docToWindowRect to convert to screen coordinates, same as
+				// the getTextFromPositions / lua_pushSegmentsFromRange paths.
+				if (docToWindowRect(tv, rect)) {
+					lua_pushstring(L, "x0");
+					lua_pushinteger(L, rect.left);
+					lua_rawset(L, -3);
+					lua_pushstring(L, "y0");
+					lua_pushinteger(L, rect.top);
+					lua_rawset(L, -3);
+					lua_pushstring(L, "x1");
+					lua_pushinteger(L, rect.right);
+					lua_rawset(L, -3);
+					lua_pushstring(L, "y1");
+					lua_pushinteger(L, rect.bottom);
+					lua_rawset(L, -3);
+				} else {
+					lua_newtable(L); // off-page word
+				}
+			} else {
+				lua_pushstring(L, "x0");
+				lua_pushinteger(L, rect.left + x_offset);
+				lua_rawset(L, -3);
+				lua_pushstring(L, "y0");
+				lua_pushinteger(L, rect.top - y_offset);
+				lua_rawset(L, -3);
+				lua_pushstring(L, "x1");
+				lua_pushinteger(L, rect.right + x_offset);
+				lua_rawset(L, -3);
+				lua_pushstring(L, "y1");
+				lua_pushinteger(L, rect.bottom - y_offset);
+				lua_rawset(L, -3);
+			}
 		} else {
 			lua_newtable(L); // {}
 		}
