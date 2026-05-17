@@ -751,6 +751,10 @@ static int isVerticalText(lua_State *L) {
 extern void ltext_reset_vert_bleed();
 extern void ltext_get_vert_bleed(int *count_out, int *max_px_out);
 
+// Ruby table vertical-detection diagnostic defined in lvrend.cpp.
+extern void lvrend_reset_ruby_diag();
+extern void lvrend_get_ruby_diag(int *ok_out, int *miss_out, int *col_x_max_out);
+
 static int resetVertBleedCounters(lua_State *L) {
     ltext_reset_vert_bleed();
     return 0;
@@ -762,6 +766,20 @@ static int getVertBleedStats(lua_State *L) {
     lua_pushinteger(L, count);
     lua_pushinteger(L, max_px);
     return 2;
+}
+
+static int resetRubyDiag(lua_State *L) {
+    lvrend_reset_ruby_diag();
+    return 0;
+}
+
+static int getRubyDiagStats(lua_State *L) {
+    int ok, miss, col_x_max;
+    lvrend_get_ruby_diag(&ok, &miss, &col_x_max);
+    lua_pushinteger(L, ok);
+    lua_pushinteger(L, miss);
+    lua_pushinteger(L, col_x_max);
+    return 3;
 }
 
 static int hasCacheFile(lua_State *L) {
@@ -4553,6 +4571,8 @@ static const struct luaL_Reg credocument_meth[] = {
     {"isVerticalText", isVerticalText},
     {"resetVertBleedCounters", resetVertBleedCounters},
     {"getVertBleedStats", getVertBleedStats},
+    {"resetRubyDiag", resetRubyDiag},
+    {"getRubyDiagStats", getRubyDiagStats},
     {"hasCacheFile", hasCacheFile},
     {"isCacheFileStale", isCacheFileStale},
     {"invalidateCacheFile", invalidateCacheFile},
