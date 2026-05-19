@@ -757,7 +757,8 @@ extern void ltext_get_vert_ruby_y0(int *count_out, int *total_error_out);
 
 // Vertical glyph-Y offset diagnostic (lvfntman.cpp).
 extern void lfnt_reset_vert_gy_diag();
-extern void lfnt_get_vert_gy_diag(int *count_out, int *sum_out);
+extern void lfnt_get_vert_gy_diag(int *count_out, int *sum_out, int *sum_sq_out,
+                                   int *min_out,   int *max_out);
 
 // Ruby table vertical-detection diagnostic defined in lvrend.cpp.
 extern void lvrend_reset_ruby_diag();
@@ -784,7 +785,17 @@ DIAG_GET2_FN(getVertBleedStats,    ltext_get_vert_bleed,    int, int)
 DIAG_RESET_FN(resetVertRubyY0Diag, ltext_reset_vert_ruby_y0)
 DIAG_GET2_FN(getVertRubyY0Diag,   ltext_get_vert_ruby_y0,  int, int)
 DIAG_RESET_FN(resetVertGlyphYDiag, lfnt_reset_vert_gy_diag)
-DIAG_GET2_FN(getVertGlyphYDiag,   lfnt_get_vert_gy_diag,   int, int)
+// getVertGlyphYDiag returns 5 values: count, sum, sum_sq, min, max of (gy-y).
+static int getVertGlyphYDiag(lua_State *L) {
+    int count, sum, sum_sq, mn, mx;
+    lfnt_get_vert_gy_diag(&count, &sum, &sum_sq, &mn, &mx);
+    lua_pushinteger(L, count);
+    lua_pushinteger(L, sum);
+    lua_pushinteger(L, sum_sq);
+    lua_pushinteger(L, mn);
+    lua_pushinteger(L, mx);
+    return 5;
+}
 DIAG_RESET_FN(resetRubyDiag,       lvrend_reset_ruby_diag)
 DIAG_GET3_FN(getRubyDiagStats,    lvrend_get_ruby_diag,    int, int, int)
 
