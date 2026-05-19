@@ -751,6 +751,10 @@ static int isVerticalText(lua_State *L) {
 extern void ltext_reset_vert_bleed();
 extern void ltext_get_vert_bleed(int *count_out, int *max_px_out);
 
+// Ruby y0 column-position diagnostic (lvtextfm_layout_h.cpp).
+extern void ltext_reset_vert_ruby_y0();
+extern void ltext_get_vert_ruby_y0(int *count_out, int *total_error_out);
+
 // Ruby table vertical-detection diagnostic defined in lvrend.cpp.
 extern void lvrend_reset_ruby_diag();
 extern void lvrend_get_ruby_diag(int *ok_out, int *miss_out, int *col_x_max_out);
@@ -765,6 +769,19 @@ static int getVertBleedStats(lua_State *L) {
     ltext_get_vert_bleed(&count, &max_px);
     lua_pushinteger(L, count);
     lua_pushinteger(L, max_px);
+    return 2;
+}
+
+static int resetVertRubyY0Diag(lua_State *L) {
+    ltext_reset_vert_ruby_y0();
+    return 0;
+}
+
+static int getVertRubyY0Diag(lua_State *L) {
+    int count, total_error;
+    ltext_get_vert_ruby_y0(&count, &total_error);
+    lua_pushinteger(L, count);
+    lua_pushinteger(L, total_error);
     return 2;
 }
 
@@ -4597,6 +4614,8 @@ static const struct luaL_Reg credocument_meth[] = {
     {"isVerticalText", isVerticalText},
     {"resetVertBleedCounters", resetVertBleedCounters},
     {"getVertBleedStats", getVertBleedStats},
+    {"resetVertRubyY0Diag", resetVertRubyY0Diag},
+    {"getVertRubyY0Diag", getVertRubyY0Diag},
     {"resetRubyDiag", resetRubyDiag},
     {"getRubyDiagStats", getRubyDiagStats},
     {"hasCacheFile", hasCacheFile},
