@@ -755,6 +755,10 @@ extern void ltext_get_vert_bleed(int *count_out, int *max_px_out);
 extern void ltext_reset_vert_ruby_y0();
 extern void ltext_get_vert_ruby_y0(int *count_out, int *total_error_out);
 
+// Vertical glyph-Y offset diagnostic (lvfntman.cpp).
+extern void lfnt_reset_vert_gy_diag();
+extern void lfnt_get_vert_gy_diag(int *count_out, int *sum_out);
+
 // Ruby table vertical-detection diagnostic defined in lvrend.cpp.
 extern void lvrend_reset_ruby_diag();
 extern void lvrend_get_ruby_diag(int *ok_out, int *miss_out, int *col_x_max_out);
@@ -782,6 +786,19 @@ static int getVertRubyY0Diag(lua_State *L) {
     ltext_get_vert_ruby_y0(&count, &total_error);
     lua_pushinteger(L, count);
     lua_pushinteger(L, total_error);
+    return 2;
+}
+
+static int resetVertGlyphYDiag(lua_State *L) {
+    lfnt_reset_vert_gy_diag();
+    return 0;
+}
+
+static int getVertGlyphYDiag(lua_State *L) {
+    int count, sum;
+    lfnt_get_vert_gy_diag(&count, &sum);
+    lua_pushinteger(L, count);
+    lua_pushinteger(L, sum);
     return 2;
 }
 
@@ -4615,6 +4632,8 @@ static const struct luaL_Reg credocument_meth[] = {
     {"resetVertBleedCounters", resetVertBleedCounters},
     {"getVertBleedStats", getVertBleedStats},
     {"resetVertRubyY0Diag", resetVertRubyY0Diag},
+    {"resetVertGlyphYDiag", resetVertGlyphYDiag},
+    {"getVertGlyphYDiag", getVertGlyphYDiag},
     {"getVertRubyY0Diag", getVertRubyY0Diag},
     {"resetRubyDiag", resetRubyDiag},
     {"getRubyDiagStats", getRubyDiagStats},
