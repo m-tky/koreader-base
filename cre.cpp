@@ -1123,6 +1123,12 @@ static int getPageHeight(lua_State *L) {
 	return 1;
 }
 
+static int getInternalPageHeight(lua_State *L) {
+	CreDocument *doc = (CreDocument*) luaL_checkudata(L, 1, "credocument");
+	lua_pushinteger(L, doc->text_view->getDocument()->getPageHeight());
+	return 1;
+}
+
 static int getPageOffsetX(lua_State *L) {
 	// Mostly useful to get the 2nd page x in 2-pages mode
 	CreDocument *doc = (CreDocument*) luaL_checkudata(L, 1, "credocument");
@@ -4570,6 +4576,7 @@ static const struct luaL_Reg credocument_meth[] = {
     {"getPageOffsetX", getPageOffsetX},
     {"getPageStartY", getPageStartY},
     {"getPageHeight", getPageHeight},
+    {"getInternalPageHeight", getInternalPageHeight},
     {"getFullHeight", getFullHeight},
     {"getFontSize", getFontSize},
     {"getFontFace", getFontFace},
