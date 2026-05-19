@@ -763,58 +763,30 @@ extern void lfnt_get_vert_gy_diag(int *count_out, int *sum_out);
 extern void lvrend_reset_ruby_diag();
 extern void lvrend_get_ruby_diag(int *ok_out, int *miss_out, int *col_x_max_out);
 
-static int resetVertBleedCounters(lua_State *L) {
-    ltext_reset_vert_bleed();
-    return 0;
-}
+// Macro for the common pattern: reset a diagnostic (void → void) and expose to Lua.
+#define DIAG_RESET_FN(LuaFnName, CResetFn) \
+    static int LuaFnName(lua_State *L) { CResetFn(); return 0; }
 
-static int getVertBleedStats(lua_State *L) {
-    int count, max_px;
-    ltext_get_vert_bleed(&count, &max_px);
-    lua_pushinteger(L, count);
-    lua_pushinteger(L, max_px);
-    return 2;
-}
+// Macro for a 2-integer getter diagnostic.
+#define DIAG_GET2_FN(LuaFnName, CGetFn, T1, T2) \
+    static int LuaFnName(lua_State *L) { \
+        T1 a; T2 b; CGetFn(&a, &b); \
+        lua_pushinteger(L, a); lua_pushinteger(L, b); return 2; }
 
-static int resetVertRubyY0Diag(lua_State *L) {
-    ltext_reset_vert_ruby_y0();
-    return 0;
-}
+// Macro for a 3-integer getter diagnostic.
+#define DIAG_GET3_FN(LuaFnName, CGetFn, T1, T2, T3) \
+    static int LuaFnName(lua_State *L) { \
+        T1 a; T2 b; T3 c; CGetFn(&a, &b, &c); \
+        lua_pushinteger(L, a); lua_pushinteger(L, b); lua_pushinteger(L, c); return 3; }
 
-static int getVertRubyY0Diag(lua_State *L) {
-    int count, total_error;
-    ltext_get_vert_ruby_y0(&count, &total_error);
-    lua_pushinteger(L, count);
-    lua_pushinteger(L, total_error);
-    return 2;
-}
-
-static int resetVertGlyphYDiag(lua_State *L) {
-    lfnt_reset_vert_gy_diag();
-    return 0;
-}
-
-static int getVertGlyphYDiag(lua_State *L) {
-    int count, sum;
-    lfnt_get_vert_gy_diag(&count, &sum);
-    lua_pushinteger(L, count);
-    lua_pushinteger(L, sum);
-    return 2;
-}
-
-static int resetRubyDiag(lua_State *L) {
-    lvrend_reset_ruby_diag();
-    return 0;
-}
-
-static int getRubyDiagStats(lua_State *L) {
-    int ok, miss, col_x_max;
-    lvrend_get_ruby_diag(&ok, &miss, &col_x_max);
-    lua_pushinteger(L, ok);
-    lua_pushinteger(L, miss);
-    lua_pushinteger(L, col_x_max);
-    return 3;
-}
+DIAG_RESET_FN(resetVertBleedCounters, ltext_reset_vert_bleed)
+DIAG_GET2_FN(getVertBleedStats,    ltext_get_vert_bleed,    int, int)
+DIAG_RESET_FN(resetVertRubyY0Diag, ltext_reset_vert_ruby_y0)
+DIAG_GET2_FN(getVertRubyY0Diag,   ltext_get_vert_ruby_y0,  int, int)
+DIAG_RESET_FN(resetVertGlyphYDiag, lfnt_reset_vert_gy_diag)
+DIAG_GET2_FN(getVertGlyphYDiag,   lfnt_get_vert_gy_diag,   int, int)
+DIAG_RESET_FN(resetRubyDiag,       lvrend_reset_ruby_diag)
+DIAG_GET3_FN(getRubyDiagStats,    lvrend_get_ruby_diag,    int, int, int)
 
 static int hasCacheFile(lua_State *L) {
     CreDocument *doc = (CreDocument*) luaL_checkudata(L, 1, "credocument");
