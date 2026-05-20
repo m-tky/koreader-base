@@ -750,10 +750,9 @@ static int isVerticalText(lua_State *L) {
 // Vertical bleed counters defined in lvtextfm_layout_h.cpp (compiled via lvtextfm.cpp).
 extern void ltext_reset_vert_bleed();
 extern void ltext_get_vert_bleed(int *count_out, int *max_px_out);
-
-// Ruby y0 column-position diagnostic (lvtextfm_layout_h.cpp).
-extern void ltext_reset_vert_ruby_y0();
-extern void ltext_get_vert_ruby_y0(int *count_out, int *total_error_out);
+// Plain-character vertical overlap counters (lvtextfm_layout_h.cpp).
+extern void ltext_reset_vert_char_overlap();
+extern void ltext_get_vert_char_overlap(int *count_out, int *max_px_out);
 
 // Vertical glyph-Y offset diagnostic (lvfntman.cpp).
 extern void lfnt_reset_vert_gy_diag();
@@ -782,8 +781,8 @@ extern void lvrend_get_ruby_diag(int *ok_out, int *miss_out, int *col_x_max_out)
 
 DIAG_RESET_FN(resetVertBleedCounters, ltext_reset_vert_bleed)
 DIAG_GET2_FN(getVertBleedStats,    ltext_get_vert_bleed,    int, int)
-DIAG_RESET_FN(resetVertRubyY0Diag, ltext_reset_vert_ruby_y0)
-DIAG_GET2_FN(getVertRubyY0Diag,   ltext_get_vert_ruby_y0,  int, int)
+DIAG_RESET_FN(resetVertCharOverlapCounters, ltext_reset_vert_char_overlap)
+DIAG_GET2_FN(getVertCharOverlapStats, ltext_get_vert_char_overlap, int, int)
 DIAG_RESET_FN(resetVertGlyphYDiag, lfnt_reset_vert_gy_diag)
 // getVertGlyphYDiag returns 5 values: count, sum, sum_sq, min, max of (gy-y).
 static int getVertGlyphYDiag(lua_State *L) {
@@ -4621,10 +4620,10 @@ static const struct luaL_Reg credocument_meth[] = {
     {"isVerticalText", isVerticalText},
     {"resetVertBleedCounters", resetVertBleedCounters},
     {"getVertBleedStats", getVertBleedStats},
-    {"resetVertRubyY0Diag", resetVertRubyY0Diag},
+    {"resetVertCharOverlapCounters", resetVertCharOverlapCounters},
+    {"getVertCharOverlapStats", getVertCharOverlapStats},
     {"resetVertGlyphYDiag", resetVertGlyphYDiag},
     {"getVertGlyphYDiag", getVertGlyphYDiag},
-    {"getVertRubyY0Diag", getVertRubyY0Diag},
     {"resetRubyDiag", resetRubyDiag},
     {"getRubyDiagStats", getRubyDiagStats},
     {"hasCacheFile", hasCacheFile},
