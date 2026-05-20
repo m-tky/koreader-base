@@ -762,6 +762,12 @@ extern void lfnt_get_vert_gy_diag(int *count_out, int *sum_out, int *sum_sq_out,
 // Ruby table vertical-detection diagnostic defined in lvrend.cpp.
 extern void lvrend_reset_ruby_diag();
 extern void lvrend_get_ruby_diag(int *ok_out, int *miss_out, int *col_x_max_out);
+// Latin ruby advance diff: render_w − advance (lvtextfm.cpp).
+extern void ltext_reset_vert_ruby_adv_diff();
+extern void ltext_get_vert_ruby_adv_diff(int *total_out, int *max_out);
+// Inline box layout/draw position gap (lvtextfm_layout_h.cpp).
+extern void ltext_reset_vert_ib_layout_gap();
+extern void ltext_get_vert_ib_layout_gap(int *total_out, int *max_out);
 
 // Macro for the common pattern: reset a diagnostic (void → void) and expose to Lua.
 #define DIAG_RESET_FN(LuaFnName, CResetFn) \
@@ -797,6 +803,10 @@ static int getVertGlyphYDiag(lua_State *L) {
 }
 DIAG_RESET_FN(resetRubyDiag,       lvrend_reset_ruby_diag)
 DIAG_GET3_FN(getRubyDiagStats,    lvrend_get_ruby_diag,    int, int, int)
+DIAG_RESET_FN(resetVertRubyAdvDiff,  ltext_reset_vert_ruby_adv_diff)
+DIAG_GET2_FN(getVertRubyAdvDiff,     ltext_get_vert_ruby_adv_diff, int, int)
+DIAG_RESET_FN(resetVertIbLayoutGap,  ltext_reset_vert_ib_layout_gap)
+DIAG_GET2_FN(getVertIbLayoutGap,     ltext_get_vert_ib_layout_gap,  int, int)
 
 static int hasCacheFile(lua_State *L) {
     CreDocument *doc = (CreDocument*) luaL_checkudata(L, 1, "credocument");
@@ -4626,6 +4636,10 @@ static const struct luaL_Reg credocument_meth[] = {
     {"getVertGlyphYDiag", getVertGlyphYDiag},
     {"resetRubyDiag", resetRubyDiag},
     {"getRubyDiagStats", getRubyDiagStats},
+    {"resetVertRubyAdvDiff", resetVertRubyAdvDiff},
+    {"getVertRubyAdvDiff",   getVertRubyAdvDiff},
+    {"resetVertIbLayoutGap", resetVertIbLayoutGap},
+    {"getVertIbLayoutGap",   getVertIbLayoutGap},
     {"hasCacheFile", hasCacheFile},
     {"isCacheFileStale", isCacheFileStale},
     {"invalidateCacheFile", invalidateCacheFile},
