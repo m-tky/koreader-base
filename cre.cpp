@@ -758,6 +758,17 @@ extern void ltext_get_vert_char_overlap(int *count_out, int *max_px_out);
 extern void lfnt_reset_vert_gy_diag();
 extern void lfnt_get_vert_gy_diag(int *count_out, int *sum_out, int *sum_sq_out,
                                    int *min_out,   int *max_out);
+// Per-slot offset record diagnostic (lvfntman.cpp).
+extern int  lfnt_vert_slot_record_count();
+extern bool lfnt_vert_get_slot_record(int i, int *anchor_out, int *slot_y_out, int *offset_out);
+extern void lfnt_vert_get_lookup_counts(int *hits_out, int *misses_out);
+extern int  lfnt_vert_get_anchor_sets();
+extern int  lfnt_vert_get_lifetime_draws();
+extern int  ltext_get_vert_fmt_draws();
+extern void ltext_get_fmt_counts(int *calls_out, int *vert_calls_out, int *word_iters_out);
+extern int  lfnt_vert_lookup_log_size();
+extern bool lfnt_vert_get_lookup_log(int i, int *anchor_out, int *slot_y_out,
+                                      int *returned_out, bool *hit_out);
 
 // Ruby table vertical-detection diagnostic defined in lvrend.cpp.
 extern void lvrend_reset_ruby_diag();
@@ -807,6 +818,75 @@ DIAG_RESET_FN(resetVertRubyAdvDiff,  ltext_reset_vert_ruby_adv_diff)
 DIAG_GET2_FN(getVertRubyAdvDiff,     ltext_get_vert_ruby_adv_diff, int, int)
 DIAG_RESET_FN(resetVertIbLayoutGap,  ltext_reset_vert_ib_layout_gap)
 DIAG_GET2_FN(getVertIbLayoutGap,     ltext_get_vert_ib_layout_gap,  int, int)
+// Per-slot record diagnostic for vertical-rl sbox alignment.
+static int getVertSlotRecordCount(lua_State *L) {
+    lua_pushinteger(L, lfnt_vert_slot_record_count());
+    return 1;
+}
+// getVertSlotRecord(i) → (anchor, slot_y, offset) or nil if out of range.
+// Called via doc._document:getVertSlotRecord(i), so the explicit Lua arg is at
+// stack position 2 (position 1 is the implicit `self` userdata).
+static int getVertSlotRecord(lua_State *L) {
+    int i = luaL_checkint(L, 2);
+    int a, s, o;
+    if (!lfnt_vert_get_slot_record(i, &a, &s, &o)) {
+        lua_pushnil(L);
+        return 1;
+    }
+    lua_pushinteger(L, a);
+    lua_pushinteger(L, s);
+    lua_pushinteger(L, o);
+    return 3;
+}
+DIAG_GET2_FN(getVertSlotLookupCounts, lfnt_vert_get_lookup_counts, int, int)
+static int getVertAnchorSets(lua_State *L) {
+    lua_pushinteger(L, lfnt_vert_get_anchor_sets());
+    return 1;
+}
+static int getVertLifetimeDraws(lua_State *L) {
+    lua_pushinteger(L, lfnt_vert_get_lifetime_draws());
+    return 1;
+}
+static int getVertFmtDraws(lua_State *L) {
+    lua_pushinteger(L, ltext_get_vert_fmt_draws());
+    return 1;
+}
+static int getFmtCounts(lua_State *L) {
+    int c, vc, w;
+    ltext_get_fmt_counts(&c, &vc, &w);
+    lua_pushinteger(L, c);
+    lua_pushinteger(L, vc);
+    lua_pushinteger(L, w);
+    return 3;
+}
+static int getVertLookupLogSize(lua_State *L) {
+    lua_pushinteger(L, lfnt_vert_lookup_log_size());
+    return 1;
+}
+// lookupVertSlotOffset(anchor, slot_y, fallback) → returned offset.
+// Called via doc._document:lookupVertSlotOffset(...), self is arg 1.
+// (Declaration comes from lvfntman.h via crengine.h; no local extern needed.)
+static int lookupVertSlotOffset(lua_State *L) {
+    int anchor   = luaL_checkint(L, 2);
+    int slot_y   = luaL_checkint(L, 3);
+    int fallback = luaL_checkint(L, 4);
+    lua_pushinteger(L, lfnt_lookup_vert_slot_offset(anchor, slot_y, fallback));
+    return 1;
+}
+static int getVertLookupLog(lua_State *L) {
+    int i = luaL_checkint(L, 2);
+    int a, s, r;
+    bool h;
+    if (!lfnt_vert_get_lookup_log(i, &a, &s, &r, &h)) {
+        lua_pushnil(L);
+        return 1;
+    }
+    lua_pushinteger(L, a);
+    lua_pushinteger(L, s);
+    lua_pushinteger(L, r);
+    lua_pushboolean(L, h);
+    return 4;
+}
 
 static int hasCacheFile(lua_State *L) {
     CreDocument *doc = (CreDocument*) luaL_checkudata(L, 1, "credocument");
@@ -4640,6 +4720,16 @@ static const struct luaL_Reg credocument_meth[] = {
     {"getVertRubyAdvDiff",   getVertRubyAdvDiff},
     {"resetVertIbLayoutGap", resetVertIbLayoutGap},
     {"getVertIbLayoutGap",   getVertIbLayoutGap},
+    {"getVertSlotRecordCount",  getVertSlotRecordCount},
+    {"getVertSlotRecord",       getVertSlotRecord},
+    {"getVertSlotLookupCounts", getVertSlotLookupCounts},
+    {"getVertAnchorSets",       getVertAnchorSets},
+    {"getVertLifetimeDraws",    getVertLifetimeDraws},
+    {"getVertFmtDraws",         getVertFmtDraws},
+    {"getFmtCounts",            getFmtCounts},
+    {"getVertLookupLogSize",    getVertLookupLogSize},
+    {"getVertLookupLog",        getVertLookupLog},
+    {"lookupVertSlotOffset",    lookupVertSlotOffset},
     {"hasCacheFile", hasCacheFile},
     {"isCacheFileStale", isCacheFileStale},
     {"invalidateCacheFile", invalidateCacheFile},
