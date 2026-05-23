@@ -865,7 +865,7 @@ static int getVertLookupLogSize(lua_State *L) {
 }
 // lookupVertSlotOffset(anchor, slot_y, fallback) → returned offset.
 // Called via doc._document:lookupVertSlotOffset(...), self is arg 1.
-extern int lfnt_lookup_vert_slot_offset(int anchor, int slot_y, int fallback);
+// (Declaration comes from lvfntman.h via crengine.h; no local extern needed.)
 static int lookupVertSlotOffset(lua_State *L) {
     int anchor   = luaL_checkint(L, 2);
     int slot_y   = luaL_checkint(L, 3);
