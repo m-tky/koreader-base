@@ -1,8 +1,6 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
-#include "ffi-cdecl.h"
-
 cdecl_type(Uint64)
 cdecl_type(Sint64)
 cdecl_type(Uint32)
@@ -54,6 +52,7 @@ cdecl_type(SDL_FRect)
 cdecl_type(SDL_Finger)
 cdecl_type(SDL_FingerID)
 cdecl_type(SDL_Gamepad)
+cdecl_type(SDL_InitFlags)
 cdecl_type(SDL_JoystickID)
 cdecl_type(SDL_KeyboardID)
 cdecl_type(SDL_Keycode)
@@ -170,6 +169,7 @@ cdecl_func(SDL_DestroyRenderer)
 cdecl_func(SDL_DestroyTexture)
 cdecl_func(SDL_EnableScreenSaver)
 cdecl_func(SDL_GetCurrentRenderOutputSize)
+cdecl_func(SDL_GetCurrentVideoDriver)
 cdecl_func(SDL_GetWindowSize)
 cdecl_func(SDL_Init)
 cdecl_func(SDL_InitSubSystem)
@@ -197,7 +197,6 @@ cdecl_func(SDL_SetWindowFullscreen)
 cdecl_func(SDL_SyncWindow)
 
 cdecl_func(SDL_GetBasePath)
-cdecl_func(SDL_GetPrefPath)
 cdecl_func(SDL_GetPowerInfo)
 cdecl_func(SDL_GetPlatform)
 

@@ -87,11 +87,19 @@ function S.open(w, h, x, y)
 
     SDL.SDL_SetMainReady()
 
+    if os.getenv("XDG_CURRENT_DESKTOP") == "Lomiri" then
+        -- Prefer X11 over Wayland on Ubuntu Touch.
+        -- Cf. https://github.com/koreader/koreader/issues/4960#issuecomment-4519022077
+        SDL.SDL_SetHint("SDL_VIDEO_DRIVER", "x11")
+    end
+
     if SDL.SDL_Init(bit.bor(SDL.SDL_INIT_VIDEO,
                             SDL.SDL_INIT_EVENTS,
                             SDL.SDL_INIT_GAMEPAD)) == 0 then
         error("Cannot initialize SDL: " .. ffi.string(SDL.SDL_GetError()))
     end
+
+    print(string.format("Started SDL in %s using %s video driver", ffi.string(SDL.SDL_GetBasePath()), ffi.string(SDL.SDL_GetCurrentVideoDriver())))
 
     local full_screen = os.getenv("SDL_FULLSCREEN")
     if full_screen then
@@ -866,16 +874,6 @@ end
 
 function S.getPlatform()
     return ffi.string(SDL.SDL_GetPlatform())
-end
-
-function S.getBasePath()
-    return ffi.string(SDL.SDL_GetBasePath())
-end
-
-function S.getPrefPath(organization, appname)
-    if not organization then organization = "dummy" end
-    if not appname then appname = "application" end
-    return toluastring(SDL.SDL_GetPrefPath(organization, appname))
 end
 
 function S.getPowerInfo()
