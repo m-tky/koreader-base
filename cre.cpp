@@ -2121,6 +2121,23 @@ static int getLinkFromPosition(lua_State *L) {
 // Forward declaration — defined below (after getTextFromPositions helpers).
 bool docToWindowRect(LVDocView *tv, lvRect &rc);
 
+// Convert doc coords to screen coords using crengine's docToWindowPoint.
+// Returns (screen_x, screen_y) or nil if the point is off-screen.
+// Args: (doc_y, doc_x) — same order as getPosFromXPointer for consistency.
+static int docToScreenPoint(lua_State *L) {
+	CreDocument *doc = (CreDocument*) luaL_checkudata(L, 1, "credocument");
+	int doc_y = luaL_checkint(L, 2);
+	int doc_x = luaL_checkint(L, 3);
+	LVDocView *tv = doc->text_view;
+	lvPoint pt(doc_x, doc_y);
+	if (tv->docToWindowPoint(pt)) {
+		lua_pushinteger(L, pt.x);
+		lua_pushinteger(L, pt.y);
+		return 2;
+	}
+	return 0;
+}
+
 static int getWordFromPosition(lua_State *L) {
 	CreDocument *doc = (CreDocument*) luaL_checkudata(L, 1, "credocument");
 	int x = luaL_checkint(L, 2);
@@ -4753,6 +4770,7 @@ static const struct luaL_Reg credocument_meth[] = {
     {"isXPointerInCurrentPage", isXPointerInCurrentPage},
     {"isXPointerInDocument", isXPointerInDocument},
     {"getLinkFromPosition", getLinkFromPosition},
+    {"docToScreenPoint", docToScreenPoint},
     {"getWordFromPosition", getWordFromPosition},
     {"getTextFromPositions", getTextFromPositions},
     {"extendXPointersToSentenceSegment", extendXPointersToSentenceSegment},
