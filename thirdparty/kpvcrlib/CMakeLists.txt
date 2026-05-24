@@ -48,6 +48,7 @@ add_library(crengine STATIC
     ${CRE_DIR}/src/lvopc.cpp
     ${CRE_DIR}/src/lvpagesplitter.cpp
     ${CRE_DIR}/src/lvrend.cpp
+    ${CRE_DIR}/src/lvrend_vert_diag.cpp
     ${CRE_DIR}/src/lvstream.cpp
     ${CRE_DIR}/src/lvstring.cpp
     ${CRE_DIR}/src/lvstsheet.cpp
