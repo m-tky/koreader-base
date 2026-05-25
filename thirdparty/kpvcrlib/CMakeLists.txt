@@ -42,6 +42,7 @@ add_library(crengine STATIC
     ${CRE_DIR}/src/lvdrawbuf.cpp
     ${CRE_DIR}/src/lvfnt.cpp
     ${CRE_DIR}/src/lvfntman.cpp
+    ${CRE_DIR}/src/lvfntman_vert.cpp
     ${CRE_DIR}/src/lvfntman_vert_slot.cpp
     ${CRE_DIR}/src/lvimg.cpp
     ${CRE_DIR}/src/lvmemman.cpp
