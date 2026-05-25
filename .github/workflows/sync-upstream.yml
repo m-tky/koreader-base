@@ -2,12 +2,14 @@ name: Sync from upstream koreader-base
 
 on:
   schedule:
-    - cron: '0 1 * * 1'  # Every Monday at 01:00 UTC
+    - cron: '0 8 * * 5'  # Friday at 08:00 UTC (17:00 JST)
   workflow_dispatch:
 
 jobs:
   sync:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -33,9 +35,12 @@ jobs:
       - name: Restore our .gitmodules (pin crengine to m-tky fork)
         if: env.MERGE_FAILED != 'true'
         run: |
-          git checkout HEAD -- .gitmodules
-          if ! git diff --quiet HEAD .gitmodules; then
-            git add .gitmodules
+          if ! git rev-parse --verify ORIG_HEAD > /dev/null 2>&1; then
+            echo "Already up to date — nothing to restore."
+            exit 0
+          fi
+          git checkout ORIG_HEAD -- .gitmodules
+          if ! git diff --cached --quiet; then
             git commit --amend --no-edit
           fi
 
