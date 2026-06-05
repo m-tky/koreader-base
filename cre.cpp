@@ -2593,7 +2593,20 @@ bool docToWindowRect(LVDocView *tv, lvRect &rc) {
         }
         return true;
     }
-    else if (bottomInPage && !topInPage) {
+    // For vertical-rl text, a column rect (one entry from getSegmentRects)
+    // is always fully contained within a single page — columns never span
+    // page boundaries.  If only one of top/bottom passed the in-page check,
+    // it is a false positive from docToWindowPoint's isRectBottom relaxation
+    // letting the bottom point be considered "on the next page top", which
+    // would then send the clip-to-page branches below into rounding the
+    // missing corner to the current page edge and producing a rect that
+    // spans the whole page width (the user-visible 90° rotation symptom on
+    // multi-page highlight continuations).  Reject the rect: it belongs to
+    // a different page.
+    if (tv->isVerticalText()) {
+        return false;
+    }
+    if (bottomInPage && !topInPage) {
         // Rect's bottom is in page, but not its top:
         // get top truncated/clipped to current page top
         topLeft = rc.topLeft();
