@@ -766,6 +766,9 @@ extern void ltext_get_vert_ruby_adv_diff(int *total_out, int *max_out);
 // Inline box layout/draw position gap (lvtextfm_layout_h.cpp).
 extern void ltext_reset_vert_ib_layout_gap();
 extern void ltext_get_vert_ib_layout_gap(int *total_out, int *max_out);
+// Per-CJK-word LAYOUT word->x vs DRAW clamped_x drift (lvtextfm_vert.cpp).
+extern void ltext_reset_vert_word_x_drift();
+extern void ltext_get_vert_word_x_drift(int *count_out, int *max_abs_out, int *signed_sum_out);
 
 // Macro for the common pattern: reset a diagnostic (void → void) and expose to Lua.
 #define DIAG_RESET_FN(LuaFnName, CResetFn) \
@@ -793,6 +796,8 @@ DIAG_RESET_FN(resetVertRubyAdvDiff,  ltext_reset_vert_ruby_adv_diff)
 DIAG_GET2_FN(getVertRubyAdvDiff,     ltext_get_vert_ruby_adv_diff, int, int)
 DIAG_RESET_FN(resetVertIbLayoutGap,  ltext_reset_vert_ib_layout_gap)
 DIAG_GET2_FN(getVertIbLayoutGap,     ltext_get_vert_ib_layout_gap,  int, int)
+DIAG_RESET_FN(resetVertWordXDrift,   ltext_reset_vert_word_x_drift)
+DIAG_GET3_FN(getVertWordXDrift,      ltext_get_vert_word_x_drift,   int, int, int)
 static int getVertFmtDraws(lua_State *L) {
     lua_pushinteger(L, ltext_get_vert_fmt_draws());
     return 1;
@@ -4653,6 +4658,8 @@ static const struct luaL_Reg credocument_meth[] = {
     {"getVertRubyAdvDiff",   getVertRubyAdvDiff},
     {"resetVertIbLayoutGap", resetVertIbLayoutGap},
     {"getVertIbLayoutGap",   getVertIbLayoutGap},
+    {"resetVertWordXDrift",  resetVertWordXDrift},
+    {"getVertWordXDrift",    getVertWordXDrift},
     {"getVertFmtDraws",         getVertFmtDraws},
     {"getFmtCounts",            getFmtCounts},
     {"hasCacheFile", hasCacheFile},
