@@ -2092,7 +2092,10 @@ static int getWordFromPosition(lua_State *L) {
 					lua_pushinteger(L, rect.bottom);
 					lua_rawset(L, -3);
 				} else {
-					lua_newtable(L); // off-page word
+					// Off-page word: keep the word table (with its "word" text)
+					// so dictionary lookup still works; just omit the coordinates.
+					// (Previously a fresh empty table was pushed over the populated
+					// one, discarding the looked-up word.)
 				}
 			} else {
 				lua_pushstring(L, "x0");
