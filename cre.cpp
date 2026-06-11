@@ -754,9 +754,6 @@ extern void ltext_get_vert_bleed(int *count_out, int *max_px_out);
 extern void ltext_reset_vert_char_overlap();
 extern void ltext_get_vert_char_overlap(int *count_out, int *max_px_out);
 
-extern int  ltext_get_vert_fmt_draws();
-extern void ltext_get_fmt_counts(int *calls_out, int *vert_calls_out, int *word_iters_out);
-
 // Ruby table vertical-detection diagnostic defined in lvrend.cpp.
 extern void lvrend_reset_ruby_diag();
 extern void lvrend_get_ruby_diag(int *ok_out, int *miss_out, int *col_x_max_out);
@@ -766,9 +763,6 @@ extern void ltext_get_vert_ruby_adv_diff(int *total_out, int *max_out);
 // Inline box layout/draw position gap (lvtextfm_layout_h.cpp).
 extern void ltext_reset_vert_ib_layout_gap();
 extern void ltext_get_vert_ib_layout_gap(int *total_out, int *max_out);
-// Per-CJK-word LAYOUT word->x vs DRAW clamped_x drift (lvtextfm_vert.cpp).
-extern void ltext_reset_vert_word_x_drift();
-extern void ltext_get_vert_word_x_drift(int *count_out, int *max_abs_out, int *signed_sum_out);
 
 // Macro for the common pattern: reset a diagnostic (void → void) and expose to Lua.
 #define DIAG_RESET_FN(LuaFnName, CResetFn) \
@@ -796,20 +790,6 @@ DIAG_RESET_FN(resetVertRubyAdvDiff,  ltext_reset_vert_ruby_adv_diff)
 DIAG_GET2_FN(getVertRubyAdvDiff,     ltext_get_vert_ruby_adv_diff, int, int)
 DIAG_RESET_FN(resetVertIbLayoutGap,  ltext_reset_vert_ib_layout_gap)
 DIAG_GET2_FN(getVertIbLayoutGap,     ltext_get_vert_ib_layout_gap,  int, int)
-DIAG_RESET_FN(resetVertWordXDrift,   ltext_reset_vert_word_x_drift)
-DIAG_GET3_FN(getVertWordXDrift,      ltext_get_vert_word_x_drift,   int, int, int)
-static int getVertFmtDraws(lua_State *L) {
-    lua_pushinteger(L, ltext_get_vert_fmt_draws());
-    return 1;
-}
-static int getFmtCounts(lua_State *L) {
-    int c, vc, w;
-    ltext_get_fmt_counts(&c, &vc, &w);
-    lua_pushinteger(L, c);
-    lua_pushinteger(L, vc);
-    lua_pushinteger(L, w);
-    return 3;
-}
 
 static int hasCacheFile(lua_State *L) {
     CreDocument *doc = (CreDocument*) luaL_checkudata(L, 1, "credocument");
@@ -4671,10 +4651,6 @@ static const struct luaL_Reg credocument_meth[] = {
     {"getVertRubyAdvDiff",   getVertRubyAdvDiff},
     {"resetVertIbLayoutGap", resetVertIbLayoutGap},
     {"getVertIbLayoutGap",   getVertIbLayoutGap},
-    {"resetVertWordXDrift",  resetVertWordXDrift},
-    {"getVertWordXDrift",    getVertWordXDrift},
-    {"getVertFmtDraws",         getVertFmtDraws},
-    {"getFmtCounts",            getFmtCounts},
     {"hasCacheFile", hasCacheFile},
     {"isCacheFileStale", isCacheFileStale},
     {"invalidateCacheFile", invalidateCacheFile},
