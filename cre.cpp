@@ -757,6 +757,8 @@ extern void ltext_get_vert_char_overlap(int *count_out, int *max_px_out);
 // Ruby table vertical-detection diagnostic defined in lvrend.cpp.
 extern void lvrend_reset_ruby_diag();
 extern void lvrend_get_ruby_diag(int *ok_out, int *miss_out, int *col_x_max_out);
+extern void lvrend_reset_list_marker_diag();
+extern void lvrend_get_list_marker_diag(int *ok_out, int *miss_out);
 // Latin ruby advance diff: render_w − advance (lvtextfm.cpp).
 extern void ltext_reset_vert_ruby_adv_diff();
 extern void ltext_get_vert_ruby_adv_diff(int *total_out, int *max_out);
@@ -786,6 +788,8 @@ DIAG_RESET_FN(resetVertCharOverlapCounters, ltext_reset_vert_char_overlap)
 DIAG_GET2_FN(getVertCharOverlapStats, ltext_get_vert_char_overlap, int, int)
 DIAG_RESET_FN(resetRubyDiag,       lvrend_reset_ruby_diag)
 DIAG_GET3_FN(getRubyDiagStats,    lvrend_get_ruby_diag,    int, int, int)
+DIAG_RESET_FN(resetListMarkerDiag, lvrend_reset_list_marker_diag)
+DIAG_GET2_FN(getListMarkerDiagStats, lvrend_get_list_marker_diag, int, int)
 DIAG_RESET_FN(resetVertRubyAdvDiff,  ltext_reset_vert_ruby_adv_diff)
 DIAG_GET2_FN(getVertRubyAdvDiff,     ltext_get_vert_ruby_adv_diff, int, int)
 DIAG_RESET_FN(resetVertIbLayoutGap,  ltext_reset_vert_ib_layout_gap)
@@ -4650,6 +4654,8 @@ static const struct luaL_Reg credocument_meth[] = {
     {"getVertCharOverlapStats", getVertCharOverlapStats},
     {"resetRubyDiag", resetRubyDiag},
     {"getRubyDiagStats", getRubyDiagStats},
+    {"resetListMarkerDiag", resetListMarkerDiag},
+    {"getListMarkerDiagStats", getListMarkerDiagStats},
     {"resetVertRubyAdvDiff", resetVertRubyAdvDiff},
     {"getVertRubyAdvDiff",   getVertRubyAdvDiff},
     {"resetVertIbLayoutGap", resetVertIbLayoutGap},
