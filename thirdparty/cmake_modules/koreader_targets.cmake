@@ -294,6 +294,9 @@ if(MONOLIBTIC)
         if(KINDLE)
             list(APPEND CDECLS openlipclua_cdecl)
         endif()
+        if(NOT (APPLE OR EMULATE_READER))
+            list(APPEND CDECLS xz_cdecl)
+        endif()
         target_exports(koreader-monolibtic CDECLS ${CDECLS}
             crypto_decl
             freetype2_decl
@@ -313,6 +316,7 @@ if(MONOLIBTIC)
             tffi_wrap_cdecl
             turbojpeg_decl
             utf8proc_decl
+            xxhash_cdecl
             zeromq_cdecl
             zlib_decl
             zstd_decl

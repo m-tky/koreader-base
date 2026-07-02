@@ -1,6 +1,6 @@
 #!/usr/bin/env luajit
 
-local VERSION = "1.0.0"
+local VERSION = "2.0.0"
 
 local buffer = require("string.buffer")
 local ffi = require("ffi")
@@ -208,19 +208,17 @@ function Formatter:new(parser)
     self.__index = self
     o.parser = parser
     o.format_by_id = {}
+    o.in_function_declarator = 0
+    o.in_parameter_list = 0
     o.output = {}
     for k, v in pairs(o.format_named) do
         local sym = parser:language_symbol_for_name(k, true)
         o.format_by_id[sym] = v
         o["c_"..k] = sym
     end
-    for k, v in pairs(o.format_unnamed) do
-        local sym = parser:language_symbol_for_name(k, false)
-        o.format_by_id[sym] = v
-        o["c_"..k] = sym
-    end
     for name, is_named in pairs{
         call_expression = true,
+        function_declarator = true,
         identifier = true,
     } do
         o["c_"..name] = parser:language_symbol_for_name(name, is_named)
@@ -245,24 +243,10 @@ function Formatter:new(parser)
     } do
         o["c_"..name] = parser:language_symbol_for_name(text)
     end
-    self.supported_attributes = {}
-    for a in ([[
-        aligned
-        cdecl
-        fastcall
-        mode
-        packed __packed__
-        stdcall
-        thiscall
-        vector_size
-    ]]):gmatch("[^%s]+") do
-       self.supported_attributes[a] = true
-    end
     return o
 end
 
 Formatter.format_named = {}
-Formatter.format_unnamed = {}
 
 function Formatter.format_named:abstract_pointer_declarator(node)
     if self.output[#self.output]:match("[%w_]$") then
@@ -279,6 +263,18 @@ function Formatter.format_named:assignment_expression(node)
     self:format(ts.ts_node_child_by_field_id(node, self.f_right))
 end
 
+local SUPPORTED_ATTRIBUTES = {
+    ["__packed__"] = true,
+    ["aligned"] = true,
+    ["cdecl"] = true,
+    ["fastcall"] = true,
+    ["mode"] = true,
+    ["packed"] = true,
+    ["stdcall"] = true,
+    ["thiscall"] = true,
+    ["vector_size"] = true,
+}
+
 function Formatter.format_named:attribute_specifier(node)
     local start = #self.output
     local attrs = ts.ts_node_named_child(node, 0)
@@ -290,7 +286,7 @@ function Formatter.format_named:attribute_specifier(node)
         elseif sym == self.c_identifier then
             id = self.parser:node_text(n)
         end
-        if id and self.supported_attributes[id] then
+        if id and SUPPORTED_ATTRIBUTES[id] then
             if #self.output == start then
                 table.insert(self.output, " __attribute__((")
             else
@@ -305,6 +301,11 @@ function Formatter.format_named:attribute_specifier(node)
 end
 
 Formatter.format_named.binary_expression = Formatter.format_named.assignment_expression
+
+function Formatter.format_named:comment(node)
+    local text = self.parser:node_text(node)
+    table.insert(self.output, text.."\n")
+end
 
 function Formatter.format_named:enumerator(node)
     self:format(ts.ts_node_child_by_field_id(node, self.f_name))
@@ -328,10 +329,25 @@ function Formatter.format_named:enumerator_list(node)
     end
 end
 
+function Formatter.format_named:identifier(node)
+    if self.in_parameter_list == 0 then
+        table.insert(self.output, self.parser:node_text(node))
+    end
+end
+
 function Formatter.format_named:init_declarator(node)
     self:format(ts.ts_node_child_by_field_id(node, self.f_declarator))
     table.insert(self.output, " = ")
     self:format(ts.ts_node_child_by_field_id(node, self.f_value))
+end
+
+function Formatter.format_named:ms_restrict_modifier(node)
+end
+
+function Formatter.format_named:parameter_list(node)
+    self.in_parameter_list = self.in_parameter_list + 1
+    self:children(node)
+    self.in_parameter_list = self.in_parameter_list - 1
 end
 
 function Formatter.format_named:parenthesized_declarator(node)
@@ -377,9 +393,56 @@ function Formatter.format_named:primitive_type(node)
 end
 
 Formatter.format_named.sized_type_specifier = Formatter.format_named.primitive_type
+
+function Formatter.format_named:declaration(node)
+    local declarator  =ts.ts_node_child_by_field_id(node, self.f_declarator)
+    local is_function_declarator = ts.ts_node_symbol(declarator) == self.c_function_declarator
+    if is_function_declarator then
+        self.in_function_declarator = self.in_function_declarator + 1
+    end
+    self:children(node)
+    if is_function_declarator then
+        self.in_function_declarator = self.in_function_declarator - 1
+    end
+end
+
+function Formatter.format_named:sizeof_expression(node)
+    local value = ts.ts_node_child_by_field_id(node, self.f_value)
+    local identifier
+    if not ts.ts_node_is_null(value) then
+        value = self.parser:node_text(value)
+        identifier = value:match("^[(]%s*([%w_]+)%s*[)]$")
+    else
+        local type_ = ts.ts_node_child_by_field_id(node, self.f_type)
+        assert(not ts.ts_node_is_null(type_))
+        identifier = self.parser:node_text(type_)
+    end
+    identifier = identifier and TYPE_ALIASES[identifier] or identifier
+    if identifier then
+        value = "(" .. identifier .. ")"
+    end
+    table.insert(self.output, "sizeof " .. value)
+end
+
+function Formatter.format_named:storage_class_specifier(node)
+    local text = self.parser:node_text(node)
+    if text == "static" and self.in_function_declarator == 0 then
+        table.insert(self.output, text)
+    end
+end
+
 Formatter.format_named.type_identifier = Formatter.format_named.primitive_type
 
-function Formatter.format_unnamed:extern(node)
+local SUPPORTED_TYPE_QUALIFIERS = {
+    ["const"] = true,
+    ["volatile"] = true,
+}
+
+function Formatter.format_named:type_qualifier(node)
+    local text = self.parser:node_text(node)
+    if SUPPORTED_TYPE_QUALIFIERS[text] then
+        table.insert(self.output, text)
+    end
 end
 
 function Formatter:format(node)
@@ -430,7 +493,7 @@ function Formatter:__call()
         buf:put(token)
         prev_token = token
     end
-    return (buf:get():gsub("%s+\n", "\n"))
+    return (buf:get():gsub("%s+\n", "\n"):gsub("//\n", "\n"))
 end
 
 -- }}}
@@ -442,6 +505,7 @@ general options:
 
   -h, --help   show this help message and exit
   -v           show version
+  -W           warn instead of erroring out on missing / redefined cdecl
 
 compiler options:
 
@@ -454,6 +518,7 @@ output options:
 
   -o FILE      output file (optional, fallback to stdout)
   -r MODULE    extra require to add to the generated output (e.g. `-r ffi/posix_h`)
+  -M           add comment markers identifying each declaration
 
 pkg-config options:
 
@@ -470,6 +535,8 @@ local function _main(parser, ffi_cdecl_dir)
     local cppflags = {}
     local pkgflags = {}
     local requires = {}
+    local warn_only = false
+    local add_markers = false
 
     while #arg > 0 do
         local a = table.remove(arg, 1)
@@ -492,6 +559,8 @@ local function _main(parser, ffi_cdecl_dir)
         elseif a == "-h" then
             io.stdout:write(help)
             return 0
+        elseif a == "-M" then
+            add_markers = true
         elseif a == "-o" then
             -- Output file.
             output_file = table.remove(arg, 1)
@@ -503,6 +572,8 @@ local function _main(parser, ffi_cdecl_dir)
         elseif a == "-v" then
             print("ffi-cdecl version "..VERSION)
             return 0
+        elseif a == "-W" then
+            warn_only = true
         elseif not input_file then
             input_file = a
         else
@@ -538,7 +609,7 @@ local function _main(parser, ffi_cdecl_dir)
 
     local cdecl_list = {}
     local cdecl_by_kind = {}
-    for t in ("const enum func struct type union var"):gmatch("%S+") do
+    for t in ("const enum func out struct type union var"):gmatch("%S+") do
         cdecl_by_kind[t] = {}
     end
 
@@ -550,17 +621,55 @@ local function _main(parser, ffi_cdecl_dir)
                 declarator: [
                     (identifier) @name
                     (array_declarator declarator: (identifier) @name)
+                    (pointer_declarator declarator: (identifier) @name)
                 ]
-                value: (_)
+                value: (_) @value
             )
         ) @match
     ]]) do
         local kind, id = parser:node_text(m.captures[3].node):match("^cdecl_([^_]+)_(.+)$")
         if kind then
             table.insert(cdecl_list, {kind, id})
-            cdecl_by_kind[kind][id] = true
+            if kind == "out" then
+                local text = parser:node_text(m.captures[4].node)
+                assert(text:match("^\".*\"$"), text)
+                text = text:sub(2, #text - 1)
+                text = text:gsub("\\(.)", "%1")
+                if text == "" then
+                    text = "//"
+                end
+                cdecl_by_kind[kind][id] = text
+            else
+                cdecl_by_kind[kind][id] = true
+            end
         end
     end
+
+    for m in parser:run_query([[
+        (union_specifier
+            name: (type_identifier) @name
+            body: (field_declaration_list
+                (field_declaration
+                    type: (_)
+                    declarator: (field_identifier)
+                ) @old
+                (field_declaration
+                    type: (_)
+                    declarator: (_)
+                ) @new
+            )
+        ) @match
+    ]]) do
+        if parser:node_text(m.captures[1].node):match("^cdecl_type_replace_%d+$") then
+            local old = parser:node_text(m.captures[2].node):gsub(" __old;$", "")
+            local new = parser:node_text(m.captures[3].node):gsub(" __new;$", "")
+            TYPE_ALIASES[old] = new
+        end
+    end
+
+    -- for k, v in pairs(TYPE_ALIASES) do
+    --     print(k, "→", v)
+    -- end
 
     -- for kind, list in pairs(cdecl_by_kind) do
     --     if next(list) then
@@ -576,12 +685,19 @@ local function _main(parser, ffi_cdecl_dir)
     local set_cdecl = function (kind, id, cdef)
         local old = cdecl_by_kind[kind][id]
         if old ~= true and old ~= cdef then
-            error(string.format("redefining %s (%s), from:\n%s\nto:\n%s\n", id, kind, old, cdef))
+            local msg = string.format("redefining %s (%s), from:\n%s\nto:\n%s\n", id, kind, old, cdef)
+            if warn_only then
+                io.stderr:write(msg)
+                cdef = old.."\n"..cdef
+            else
+                error(msg)
+            end
         end
         cdecl_by_kind[kind][id] = cdef
     end
 
     local c_declaration = parser:language_symbol_for_name("declaration",  true)
+    local c_function_definition = parser:language_symbol_for_name("function_definition", true)
     local c_primitive_type = parser:language_symbol_for_name("primitive_type", true)
     local c_type_identifier = parser:language_symbol_for_name("type_identifier", true)
     local c_enum_or_struct_or_union = {
@@ -589,6 +705,7 @@ local function _main(parser, ffi_cdecl_dir)
         [parser:language_symbol_for_name("struct_specifier", true)] = "struct",
         [parser:language_symbol_for_name("union_specifier", true)] = "union",
     }
+    local f_body = parser:language_field_id_for_name("body")
 
     -- cdecl_const
     if next(cdecl_by_kind.const) then
@@ -665,10 +782,20 @@ local function _main(parser, ffi_cdecl_dir)
             local id = parser:node_text(m.captures[1].node)
             if cdecl_by_kind.func[id] then
                 local node = m.captures[0].node
+                local sym
                 -- Walk up to the parent declaration.
                 repeat node = ts.ts_node_parent(node)
-                until ts.ts_node_symbol(node) == c_declaration
+                    assert(not ts.ts_node_is_null(node))
+                    sym = ts.ts_node_symbol(node)
+                until sym == c_declaration or sym == c_function_definition
                 local cdef = parser:node_text(node)
+                if sym == c_function_definition then
+                    -- Function definition (e.g. inline), turn it into a definition.
+                    node = ts.ts_node_child_by_field_id(node, f_body)
+                    local s = ts.ts_node_start_byte(node)
+                    local e = ts.ts_node_end_byte(node)
+                    cdef = cdef:sub(1, #cdef - e + s - 1) .. ";"
+                end
                 set_cdecl('func', id, cdef)
             end
         end
@@ -770,9 +897,24 @@ local function _main(parser, ffi_cdecl_dir)
         local kind, id = unpack(v)
         local cdef = cdecl_by_kind[kind][id]
         if cdef == true then
-            error("missing cdef for "..id.." ("..kind..")")
-        end
-        if cdef ~= true then
+            local msg = "missing cdef for "..id.." ("..kind..")\n"
+            if warn_only then
+                io.stderr:write(msg)
+            else
+                error(msg)
+            end
+        else
+            if add_markers then
+                local tag
+                if kind == "type" then
+                    tag = {kind, TYPE_ALIASES[id] or id}
+                elseif kind == "out" then
+                    tag = {id}
+                else
+                    tag = {kind, id}
+                end
+                cdef_block:put(string.format("// cdecl_%s\n", table.concat(tag, "_")))
+            end
             cdef_block:put(cdef)
             cdef_block:put("\n")
         end
@@ -788,21 +930,24 @@ local function _main(parser, ffi_cdecl_dir)
     --     print("node sexp:", parser:node_sexp(node))
     -- end
 
+    local output = buffer:new()
+    output:put("-- Automatically generated with ffi-cdecl.\n\n")
+    if #requires > 0 then
+        for __, r in ipairs(requires) do
+            output:putf("require \"%s\"\n", r)
+        end
+        output:put("\n")
+    end
+    output:put("require(\"ffi\").cdef[[\n")
+    output:put(Formatter:new(parser)())
+    output:put("]]\n")
+
     if output_file == "-" then
         output_file = io.stdout
     else
         output_file = io.open(output_file, "w+")
     end
-    output_file:write("-- Automatically generated with ffi-cdecl.\n\n")
-    if #requires > 0 then
-        for __, r in ipairs(requires) do
-            output_file:write(string.format("require \"%s\"\n", r))
-        end
-        output_file:write("\n")
-    end
-    output_file:write("require(\"ffi\").cdef[[\n")
-    output_file:write(Formatter:new(parser)())
-    output_file:write("]]\n")
+    output_file:write(output)
     if output_file ~= io.stdout then
         output_file:close()
     end

@@ -2,7 +2,7 @@ KODEBUG ?=
 KOR_BASE ?= ../..
 
 TARGET = linux
-VERSION = 1.0.0
+VERSION := $(shell sed -nE 's/^local VERSION = "(.*)"$$/\1/p' $(KOR_BASE)/ffi-cdecl/ffi-cdecl.lua)
 
 include $(KOR_BASE)/Makefile.defs
 
@@ -23,7 +23,6 @@ libs/libtree-sitter.so.*[0-9]
 libs/libtree-sitter-c.so.*[0-9]
 ffi/loadlib.lua
 ffi/posix_h.lua
-ffi/posix_types_*_h.lua
 ffi/tree_sitter_h.lua
 endef
 

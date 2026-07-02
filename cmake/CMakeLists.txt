@@ -628,8 +628,8 @@ function(ffi_target NAME OUTPUT INPUT)
         # don't correctly handle `--env-only --with-path=…` (ignoring that last
         # option).
         COMMAND env PKG_CONFIG_PATH=${STAGING_DIR}/lib/pkgconfig
-                ${FFI_CDECL} ${FFI_CDECL_FLAGS} -o ${OUTPUT}
-                ${_ARGS} ${INPUT}
+                ${FFI_CDECL} ${FFI_CDECL_FLAGS}
+                ${_ARGS} ${INPUT} -o ${OUTPUT}
         COMMENT "Generating 'ffi/${TGT}'"
         VERBATIM
         WORKING_DIRECTORY ${BASE_DIR}
@@ -685,7 +685,7 @@ endif()
 set(VERSIONS 505 507 508 509 511 512 514 515 517 519 605 608 610 611)
 add_custom_target(
     inkview-ffi
-    COMMAND ./utils/gen_inkview_h.py ffi/inkview_h.lua ${CMAKE_CURRENT_BINARY_DIR} ${VERSIONS}
+    COMMAND ./utils/gen_merged_cdecl_h.py ffi/inkview_h.lua ffi-cdecl/inkview_h_.lua target_version ${CMAKE_CURRENT_BINARY_DIR} ${VERSIONS}
     COMMENT "Generating 'ffi/inkview_h.lua'"
     VERBATIM
     WORKING_DIRECTORY ${BASE_DIR}
@@ -696,7 +696,7 @@ endif()
 foreach(V IN LISTS VERSIONS)
     ffi_target(inkview ${CMAKE_CURRENT_BINARY_DIR}/inkview_h_${V}.lua inkview_decl.c ${EXCLUDE_FROM_ALL}
         DEPENDS freetype2
-        ARGS -D POCKETBOOK_VERSION=${V} -I ${INKVIEW_DIR}/${V} -d freetype2 -f -Wno-deprecated-declarations
+        ARGS -D POCKETBOOK_VERSION=${V} -I ${INKVIEW_DIR}/${V} -d freetype2 -f -Wno-deprecated-declarations -M
     )
 endforeach()
 
@@ -747,7 +747,7 @@ ffi_target(linux einkfb_h.lua einkfb_decl.c ${EXCLUDE_FROM_ALL})
 ffi_target(linux inotify_h.lua inotify_decl.c ${EXCLUDE_FROM_ALL})
 ffi_target(linux linux_fb_h.lua linux_fb_decl.c ${EXCLUDE_FROM_ALL})
 ffi_target(linux linux_input_h.lua linux_input_decl.c ${EXCLUDE_FROM_ALL} ARGS -r ffi/posix_h)
-ffi_target(linux rtc_h.lua rtc_cdecl.c ${EXCLUDE_FROM_ALL})
+ffi_target(linux rtc_h.lua rtc_cdecl.c ${EXCLUDE_FROM_ALL} ARGS -r ffi/posix_h)
 
 # lodepng
 ffi_target(lodepng lodepng_h.lua lodepng_decl.c)
@@ -762,6 +762,40 @@ else()
     set(EXCLUDE_FROM_ALL EXCLUDE_FROM_ALL)
 endif()
 ffi_target(pocketbook mxcfb_pocketbook_h.lua mxcfb_pb_decl.c ${EXCLUDE_FROM_ALL})
+
+# posix
+set(VERSIONS
+    android_arm android_arm64 android_x86 android_x64
+    linux_arm linux_arm64 linux_x64
+    macos
+)
+add_custom_target(
+    posix-ffi
+    COMMAND ./utils/gen_merged_cdecl_h.py ffi/posix_h.lua ffi-cdecl/posix_h_.lua platform ffi-cdecl ${VERSIONS}
+    COMMENT "Generating 'ffi/posix_h.lua'"
+    VERBATIM
+    WORKING_DIRECTORY ${BASE_DIR}
+)
+if(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
+    set(LUAJIT_ARCH "arm64")
+elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm")
+    set(LUAJIT_ARCH "arm")
+elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "i686")
+    set(LUAJIT_ARCH "x86")
+elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+    set(LUAJIT_ARCH "x64")
+else()
+    message(FATAL_ERROR "unsupported CMAKE_SYSTEM_PROCESSOR value: ${CMAKE_SYSTEM_PROCESSOR}")
+endif()
+if(ANDROID)
+    set(POSIX_PLATFORM android_${LUAJIT_ARCH})
+elseif(APPLE)
+    set(POSIX_PLATFORM macos)
+else()
+    set(POSIX_PLATFORM linux_${LUAJIT_ARCH})
+endif()
+set(POSIX_PLATFORM ffi-cdecl/posix_h_${POSIX_PLATFORM}.lua)
+ffi_target(posix ${POSIX_PLATFORM} posix_cdecl.c ARGS -M -W EXCLUDE_FROM_ALL)
 
 # remarkable
 if(REMARKABLE)
@@ -780,6 +814,12 @@ ffi_target(tree-sitter tree_sitter_h.lua tree_sitter_cdecl.c DEPENDS tree-sitter
 
 # utf8proc
 ffi_target(utf8proc utf8proc_h.lua utf8proc_decl.c ARGS -d libutf8proc)
+
+# xxhash
+ffi_target(xxhash xxhash_h.lua xxhash_cdecl.c)
+
+# xz
+ffi_target(xz xz_h.lua xz_cdecl.c)
 
 # zlib
 ffi_target(zlib zlib_h.lua zlib_decl.c ARGS -d zlib)
