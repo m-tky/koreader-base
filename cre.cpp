@@ -768,6 +768,9 @@ extern void ltext_get_vert_ib_layout_gap(int *total_out, int *max_out);
 // Vertical trailing-space trims in rendered line-ending words.
 extern void ltext_reset_vert_trailing_space_trim();
 extern void ltext_get_vert_trailing_space_trim(int *count_out, int *chars_out);
+// Vertical inline-image draw Y drift.
+extern void ltext_reset_vert_image_draw_drift();
+extern void ltext_get_vert_image_draw_drift(int *draw_count_out, int *drift_count_out, int *max_px_out);
 
 // Macro for the common pattern: reset a diagnostic (void → void) and expose to Lua.
 #define DIAG_RESET_FN(LuaFnName, CResetFn) \
@@ -799,6 +802,8 @@ DIAG_RESET_FN(resetVertIbLayoutGap,  ltext_reset_vert_ib_layout_gap)
 DIAG_GET2_FN(getVertIbLayoutGap,     ltext_get_vert_ib_layout_gap,  int, int)
 DIAG_RESET_FN(resetVertTrailingSpaceTrim, ltext_reset_vert_trailing_space_trim)
 DIAG_GET2_FN(getVertTrailingSpaceTrim, ltext_get_vert_trailing_space_trim, int, int)
+DIAG_RESET_FN(resetVertImageDrawDrift, ltext_reset_vert_image_draw_drift)
+DIAG_GET3_FN(getVertImageDrawDrift, ltext_get_vert_image_draw_drift, int, int, int)
 
 static int hasCacheFile(lua_State *L) {
     CreDocument *doc = (CreDocument*) luaL_checkudata(L, 1, "credocument");
@@ -4675,6 +4680,8 @@ static const struct luaL_Reg credocument_meth[] = {
     {"getVertIbLayoutGap",   getVertIbLayoutGap},
     {"resetVertTrailingSpaceTrim", resetVertTrailingSpaceTrim},
     {"getVertTrailingSpaceTrim",   getVertTrailingSpaceTrim},
+    {"resetVertImageDrawDrift", resetVertImageDrawDrift},
+    {"getVertImageDrawDrift",   getVertImageDrawDrift},
     {"hasCacheFile", hasCacheFile},
     {"isCacheFileStale", isCacheFileStale},
     {"invalidateCacheFile", invalidateCacheFile},
