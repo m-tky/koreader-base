@@ -325,7 +325,7 @@ declare_project(thirdparty/kobo-usbms ${EXCLUDE_FROM_ALL})
 declare_project(thirdparty/koreader-lfs DEPENDS luajit)
 
 # leptonica
-declare_project(thirdparty/leptonica DEPENDS libpng)
+declare_project(thirdparty/leptonica DEPENDS libpng zlib)
 
 # libarchive
 set(DEPENDS zlib zstd)
@@ -338,7 +338,7 @@ declare_project(thirdparty/libarchive DEPENDS ${DEPENDS})
 declare_project(thirdparty/libjpeg-turbo)
 
 # libk2pdfopt
-declare_project(thirdparty/libk2pdfopt DEPENDS leptonica libpng tesseract zlib)
+declare_project(thirdparty/libk2pdfopt DEPENDS leptonica tesseract)
 
 # libpng
 declare_project(thirdparty/libpng DEPENDS zlib EXCLUDE_FROM_ALL)
@@ -776,13 +776,13 @@ add_custom_target(
     VERBATIM
     WORKING_DIRECTORY ${BASE_DIR}
 )
-if(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)")
     set(LUAJIT_ARCH "arm64")
-elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm")
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^arm")
     set(LUAJIT_ARCH "arm")
-elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "i686")
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(i[3-6]86|x86)")
     set(LUAJIT_ARCH "x86")
-elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64)")
     set(LUAJIT_ARCH "x64")
 else()
     message(FATAL_ERROR "unsupported CMAKE_SYSTEM_PROCESSOR value: ${CMAKE_SYSTEM_PROCESSOR}")
@@ -805,6 +805,7 @@ else()
 endif()
 ffi_target(remarkable mxcfb_remarkable_h.lua mxcfb_remarkable_decl.c ${EXCLUDE_FROM_ALL})
 ffi_target(remarkable qtfb_h.lua qtfb_cdecl.c ${EXCLUDE_FROM_ALL})
+ffi_target(remarkable blight_h.lua blight_cdecl.c ${EXCLUDE_FROM_ALL})
 
 # sdl3
 ffi_target(sdl3 SDL3_h.lua SDL3_decl.c ARGS -d sdl3)

@@ -1,4 +1,7 @@
-padded_version = $(subst $(empty) $(empty),0,$(shell printf '.%2s' $(subst .,$(empty) $(empty),$1)))
+comma := ,
+space := $(empty) $(empty)
+
+padded_version = $(subst $(space),0,$(shell printf '.%2s' $(subst .,$(space),$1)))
 at_least_version = $(filter $(call padded_version,$2),$(firstword $(sort $(call padded_version,$1) $(call padded_version,$2))))
 
 USING_MAKE_4_4_OR_BETTER := $(call at_least_version,$(MAKE_VERSION),4.4)
@@ -59,7 +62,6 @@ KEEP_GOING := $(findstring k,$(firstword -$(MAKEFLAGS)))
 DRY_RUN := $(findstring n,$(firstword -$(MAKEFLAGS)))
 ifeq (0,$(MAKELEVEL))
   ifeq (,$(PARALLEL_JOBS))
-    space := $(empty) $(empty)
     PARALLEL_JOBS := $(or $(patsubst -j%,%,$(filter -j%,$(MFLAGS))))
   endif
   ifeq (,$(PARALLEL_LOAD))
@@ -890,21 +892,6 @@ endef
 
 ifndef EMULATE_READER
 
-# CMAKE_SYSTEM_PROCESSOR
-# FIXME: use more fine grained values for ARM targets?
-# (Cf. https://github.com/taka-no-me/android-cmake)
-ifneq (,$(filter aarch64-%,$(TARGET_MACHINE)))
-  CMAKE_SYSTEM_PROCESSOR = aarch64
-else ifneq (,$(filter arm-% armv7a-%,$(TARGET_MACHINE)))
-  CMAKE_SYSTEM_PROCESSOR = arm
-else ifneq (,$(filter i686-%,$(TARGET_MACHINE)))
-  CMAKE_SYSTEM_PROCESSOR = i686
-else ifneq (,$(filter x86_64-%,$(TARGET_MACHINE)))
-  CMAKE_SYSTEM_PROCESSOR = x86_64
-else
-  $(error CMAKE_SYSTEM_PROCESSOR not set! (TARGET_MACHINE is $(TARGET_MACHINE)))
-endif
-
 define cmake_cross_toolchain
 
 $(cmake_toolchain)
@@ -921,7 +908,7 @@ $(if $(ANDROID),set(CMAKE_SYSTEM_VERSION 1))
 $(if $(ANDROID),set(CMAKE_PLATFORM_NO_VERSIONED_SONAME TRUE))
 
 # Target architecture.
-set(CMAKE_SYSTEM_PROCESSOR $(CMAKE_SYSTEM_PROCESSOR))
+set(CMAKE_SYSTEM_PROCESSOR $(word 1,$(subst -,$(space),$(TARGET_MACHINE))))
 
 # Search for programs in the build host directories.
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
@@ -1014,8 +1001,6 @@ endef
 # }}}
 
 # Meson toolchain file(s). {{{
-
-comma:=,
 
 define meson_toolchain
 
