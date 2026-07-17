@@ -203,27 +203,32 @@ fz_rect *mupdf_fz_bound_page(fz_context *ctx, fz_page *page, fz_rect *r) {
     return r;
 }
 
-typedef struct
+static void smask_close_device(fz_context *ctx, fz_device *dev)
 {
-    fz_device super;
-    fz_device* default_device;
-} isolated_smask_device;
+    fz_close_device(ctx, dev->passthrough);
+}
+
+static void smask_drop_device(fz_context *ctx, fz_device *dev)
+{
+    fz_drop_device(ctx, dev->passthrough);
+}
 
 static void smask_fill_image(fz_context* ctx, fz_device* dev, fz_image* img, fz_matrix ctm, float alpha, fz_color_params color_params)
 {
     if (img->mask) {
-        isolated_smask_device* smask_dev = (isolated_smask_device*)dev;
-        float black[1] = { 0.f };
-        fz_fill_image_mask(ctx, smask_dev->default_device, img->mask, ctm, fz_device_gray(ctx), black, alpha, color_params);
+        float black = 0.f;
+        fz_fill_image_mask(ctx, dev->passthrough, img->mask, ctm, fz_device_gray(ctx), &black, alpha, color_params);
     }
 }
 
 fz_device *new_isolated_smask_device(fz_context* ctx, fz_device* dev)
 {
-    isolated_smask_device* smask_dev = fz_new_derived_device(ctx, isolated_smask_device);
-    smask_dev->default_device = dev;
-    smask_dev->super.fill_image = smask_fill_image;
-    return (fz_device*)smask_dev;
+    fz_device *smask_dev = fz_new_derived_device(ctx, fz_device);
+    smask_dev->passthrough = fz_keep_device(ctx, dev);
+    smask_dev->close_device = smask_close_device;
+    smask_dev->drop_device = smask_drop_device;
+    smask_dev->fill_image = smask_fill_image;
+    return smask_dev;
 }
 
 int page_has_smask(fz_context* ctx, fz_page* p)
