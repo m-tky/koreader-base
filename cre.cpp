@@ -771,6 +771,10 @@ extern void ltext_get_vert_trailing_space_trim(int *count_out, int *chars_out);
 // Vertical inline-image draw Y drift.
 extern void ltext_reset_vert_image_draw_drift();
 extern void ltext_get_vert_image_draw_drift(int *draw_count_out, int *drift_count_out, int *max_px_out);
+extern void ltext_reset_vert_image_cross_underreserve();
+extern void ltext_get_vert_image_cross_underreserve(int *count_out, int *max_px_out);
+extern void ltext_reset_vert_mixed_image_axis();
+extern void ltext_get_vert_mixed_image_axis(int *sample_count_out, int *drift_count_out, int *max_px_out);
 
 // Macro for the common pattern: reset a diagnostic (void → void) and expose to Lua.
 #define DIAG_RESET_FN(LuaFnName, CResetFn) \
@@ -804,6 +808,10 @@ DIAG_RESET_FN(resetVertTrailingSpaceTrim, ltext_reset_vert_trailing_space_trim)
 DIAG_GET2_FN(getVertTrailingSpaceTrim, ltext_get_vert_trailing_space_trim, int, int)
 DIAG_RESET_FN(resetVertImageDrawDrift, ltext_reset_vert_image_draw_drift)
 DIAG_GET3_FN(getVertImageDrawDrift, ltext_get_vert_image_draw_drift, int, int, int)
+DIAG_RESET_FN(resetVertImageCrossUnderreserve, ltext_reset_vert_image_cross_underreserve)
+DIAG_GET2_FN(getVertImageCrossUnderreserve, ltext_get_vert_image_cross_underreserve, int, int)
+DIAG_RESET_FN(resetVertMixedImageAxis, ltext_reset_vert_mixed_image_axis)
+DIAG_GET3_FN(getVertMixedImageAxis, ltext_get_vert_mixed_image_axis, int, int, int)
 
 static int hasCacheFile(lua_State *L) {
     CreDocument *doc = (CreDocument*) luaL_checkudata(L, 1, "credocument");
@@ -4682,6 +4690,10 @@ static const struct luaL_Reg credocument_meth[] = {
     {"getVertTrailingSpaceTrim",   getVertTrailingSpaceTrim},
     {"resetVertImageDrawDrift", resetVertImageDrawDrift},
     {"getVertImageDrawDrift",   getVertImageDrawDrift},
+    {"resetVertImageCrossUnderreserve", resetVertImageCrossUnderreserve},
+    {"getVertImageCrossUnderreserve",   getVertImageCrossUnderreserve},
+    {"resetVertMixedImageAxis", resetVertMixedImageAxis},
+    {"getVertMixedImageAxis",   getVertMixedImageAxis},
     {"hasCacheFile", hasCacheFile},
     {"isCacheFileStale", isCacheFileStale},
     {"invalidateCacheFile", invalidateCacheFile},
