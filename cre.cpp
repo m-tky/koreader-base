@@ -30,6 +30,8 @@ extern "C" {
 #include "crengine.h"
 #include "lvdocview.h"
 #include "lvimg.h"
+#include "lvrend_vert_diag.h"
+#include "lvtextfm_vert_diag.h"
 
 static void replaceColor( char * str, lUInt32 color ) {
 	// in line like "0 c #80000000",
@@ -746,35 +748,6 @@ static int isVerticalText(lua_State *L) {
     lua_pushboolean(L, doc->text_view->isVerticalText());
     return 1;
 }
-
-// Vertical bleed counters defined in lvtextfm_layout_h.cpp (compiled via lvtextfm.cpp).
-extern void ltext_reset_vert_bleed();
-extern void ltext_get_vert_bleed(int *count_out, int *max_px_out);
-// Plain-character vertical overlap counters (lvtextfm_layout_h.cpp).
-extern void ltext_reset_vert_char_overlap();
-extern void ltext_get_vert_char_overlap(int *count_out, int *max_px_out);
-
-// Ruby table vertical-detection diagnostic defined in lvrend.cpp.
-extern void lvrend_reset_ruby_diag();
-extern void lvrend_get_ruby_diag(int *ok_out, int *miss_out, int *col_x_max_out);
-extern void lvrend_reset_list_marker_diag();
-extern void lvrend_get_list_marker_diag(int *ok_out, int *miss_out);
-// Latin ruby advance diff: render_w − advance (lvtextfm.cpp).
-extern void ltext_reset_vert_ruby_adv_diff();
-extern void ltext_get_vert_ruby_adv_diff(int *total_out, int *max_out);
-// Inline box layout/draw position gap (lvtextfm_layout_h.cpp).
-extern void ltext_reset_vert_ib_layout_gap();
-extern void ltext_get_vert_ib_layout_gap(int *total_out, int *max_out);
-// Vertical trailing-space trims in rendered line-ending words.
-extern void ltext_reset_vert_trailing_space_trim();
-extern void ltext_get_vert_trailing_space_trim(int *count_out, int *chars_out);
-// Vertical inline-image draw Y drift.
-extern void ltext_reset_vert_image_draw_drift();
-extern void ltext_get_vert_image_draw_drift(int *draw_count_out, int *drift_count_out, int *max_px_out);
-extern void ltext_reset_vert_image_cross_underreserve();
-extern void ltext_get_vert_image_cross_underreserve(int *count_out, int *max_px_out);
-extern void ltext_reset_vert_mixed_image_axis();
-extern void ltext_get_vert_mixed_image_axis(int *sample_count_out, int *drift_count_out, int *max_px_out);
 
 // Macro for the common pattern: reset a diagnostic (void → void) and expose to Lua.
 #define DIAG_RESET_FN(LuaFnName, CResetFn) \
