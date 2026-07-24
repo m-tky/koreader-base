@@ -27,7 +27,6 @@ extern "C" {
 #include "cre.h"
 }
 
-#include "crengine.h"
 #include "lvdocview.h"
 #include "lvimg.h"
 #include "lvrend_vert_diag.h"
