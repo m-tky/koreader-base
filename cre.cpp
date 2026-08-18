@@ -764,6 +764,13 @@ static int isVerticalText(lua_State *L) {
         T1 a; T2 b; T3 c; CGetFn(&a, &b, &c); \
         lua_pushinteger(L, a); lua_pushinteger(L, b); lua_pushinteger(L, c); return 3; }
 
+// Macro for a 4-integer getter diagnostic.
+#define DIAG_GET4_FN(LuaFnName, CGetFn, T1, T2, T3, T4) \
+    static int LuaFnName(lua_State *L) { \
+        T1 a; T2 b; T3 c; T4 d; CGetFn(&a, &b, &c, &d); \
+        lua_pushinteger(L, a); lua_pushinteger(L, b); \
+        lua_pushinteger(L, c); lua_pushinteger(L, d); return 4; }
+
 DIAG_RESET_FN(resetVertBleedCounters, ltext_reset_vert_bleed)
 DIAG_GET2_FN(getVertBleedStats,    ltext_get_vert_bleed,    int, int)
 DIAG_RESET_FN(resetVertCharOverlapCounters, ltext_reset_vert_char_overlap)
@@ -784,6 +791,9 @@ DIAG_RESET_FN(resetVertImageCrossUnderreserve, ltext_reset_vert_image_cross_unde
 DIAG_GET2_FN(getVertImageCrossUnderreserve, ltext_get_vert_image_cross_underreserve, int, int)
 DIAG_RESET_FN(resetVertMixedImageAxis, ltext_reset_vert_mixed_image_axis)
 DIAG_GET3_FN(getVertMixedImageAxis, ltext_get_vert_mixed_image_axis, int, int, int)
+DIAG_RESET_FN(resetVertSingleImagePlacement, ltext_reset_vert_single_image_placement)
+DIAG_GET4_FN(getVertSingleImagePlacement, ltext_get_vert_single_image_placement,
+    int, int, int, int)
 
 static int hasCacheFile(lua_State *L) {
     CreDocument *doc = (CreDocument*) luaL_checkudata(L, 1, "credocument");
@@ -4700,6 +4710,8 @@ static const struct luaL_Reg credocument_meth[] = {
     {"getVertImageCrossUnderreserve",   getVertImageCrossUnderreserve},
     {"resetVertMixedImageAxis", resetVertMixedImageAxis},
     {"getVertMixedImageAxis",   getVertMixedImageAxis},
+    {"resetVertSingleImagePlacement", resetVertSingleImagePlacement},
+    {"getVertSingleImagePlacement",   getVertSingleImagePlacement},
     {"hasCacheFile", hasCacheFile},
     {"isCacheFileStale", isCacheFileStale},
     {"invalidateCacheFile", invalidateCacheFile},
