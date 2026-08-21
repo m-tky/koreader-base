@@ -794,6 +794,9 @@ DIAG_GET3_FN(getVertMixedImageAxis, ltext_get_vert_mixed_image_axis, int, int, i
 DIAG_RESET_FN(resetVertSingleImagePlacement, ltext_reset_vert_single_image_placement)
 DIAG_GET4_FN(getVertSingleImagePlacement, ltext_get_vert_single_image_placement,
     int, int, int, int)
+DIAG_RESET_FN(resetVertExactHangingClip, ltext_reset_vert_exact_hanging_clip)
+DIAG_GET3_FN(getVertExactHangingClip, ltext_get_vert_exact_hanging_clip,
+    int, int, int)
 
 static int hasCacheFile(lua_State *L) {
     CreDocument *doc = (CreDocument*) luaL_checkudata(L, 1, "credocument");
@@ -4712,6 +4715,8 @@ static const struct luaL_Reg credocument_meth[] = {
     {"getVertMixedImageAxis",   getVertMixedImageAxis},
     {"resetVertSingleImagePlacement", resetVertSingleImagePlacement},
     {"getVertSingleImagePlacement",   getVertSingleImagePlacement},
+    {"resetVertExactHangingClip", resetVertExactHangingClip},
+    {"getVertExactHangingClip",   getVertExactHangingClip},
     {"hasCacheFile", hasCacheFile},
     {"isCacheFileStale", isCacheFileStale},
     {"invalidateCacheFile", invalidateCacheFile},
