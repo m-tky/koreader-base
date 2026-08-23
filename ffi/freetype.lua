@@ -166,6 +166,10 @@ function FTSize_mt.__index:getInfo()
         -- Style
         mono = bit.band(tonumber(face.face_flags), ft2.FT_FACE_FLAG_FIXED_WIDTH) ~= 0,
         hint = bit.band(tonumber(face.face_flags), ft2.FT_FACE_FLAG_HINTER) ~= 0,
+        -- A vertical metrics table lets CRengine use the font's intended
+        -- top-to-bottom advances and origins. Fonts without it still render,
+        -- but vertical typography falls back to horizontal metrics.
+        has_vertical_metrics = bit.band(tonumber(face.face_flags), ft2.FT_FACE_FLAG_VERTICAL) ~= 0,
         bold = bit.band(tonumber(face.style_flags), ft2.FT_STYLE_FLAG_BOLD) ~= 0,
         italic = bit.band(tonumber(face.style_flags), ft2.FT_STYLE_FLAG_ITALIC) ~= 0,
         serif = nil,
