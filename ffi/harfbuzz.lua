@@ -86,6 +86,29 @@ function hb_face_t:getCoverage()
     return scripts, langs
 end
 
+-- Returns whether this face advertises the standard OpenType GSUB features
+-- for vertical glyph substitution. This reports feature-table presence only:
+-- it does not imply that every glyph has a vertical alternate, or that a
+-- particular shaping run enabled the feature.
+function hb_face_t:hasVerticalFeatures()
+    local count = ffi.new("unsigned[1]", 0)
+    hb.hb_ot_layout_table_get_feature_tags(self, HB.HB_OT_TAG_GSUB, 0, count, nil)
+    if count[0] == 0 then
+        return false, false
+    end
+    local tags = ffi.new("hb_tag_t[?]", count[0])
+    hb.hb_ot_layout_table_get_feature_tags(self, HB.HB_OT_TAG_GSUB, 0, count, tags)
+    local has_vert, has_vrt2 = false, false
+    for i = 0, count[0] - 1 do
+        if tags[i] == 0x76657274 then -- "vert"
+            has_vert = true
+        elseif tags[i] == 0x76727432 then -- "vrt2"
+            has_vrt2 = true
+        end
+    end
+    return has_vert, has_vrt2
+end
+
 function hb_face_t:destroy()
     hb.hb_face_destroy(self)
 end
