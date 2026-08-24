@@ -44,12 +44,12 @@ typedef void (*hb_destroy_func_t)(void *);
 static const unsigned HB_OT_NAME_ID_FONT_FAMILY = 1;
 static const unsigned HB_OT_NAME_ID_FONT_SUBFAMILY = 2;
 static const unsigned HB_OT_NAME_ID_FULL_NAME = 4;
-static const hb_tag_t HB_OT_TAG_GSUB = 1196643650;
+static const unsigned HB_OT_TAG_GSUB = 1196643650;
 typedef struct FT_FaceRec_ *FT_Face;
 hb_blob_t *hb_blob_create(const char *, unsigned, hb_memory_mode_t, void *, hb_destroy_func_t);
 hb_face_t *hb_face_create(hb_blob_t *, unsigned);
 void hb_blob_destroy(hb_blob_t *);
 unsigned hb_face_get_glyph_count(const hb_face_t *);
-unsigned hb_ot_layout_table_get_feature_tags(hb_face_t *, hb_tag_t, unsigned, unsigned *, hb_tag_t *);
 hb_face_t *hb_ft_face_create_referenced(FT_Face);
+unsigned hb_ot_layout_table_get_feature_tags(hb_face_t *, hb_tag_t, unsigned, unsigned *, hb_tag_t *);
 ]]
