@@ -6,6 +6,7 @@
 
 // The few bits we actually rely on for ffi/harfbuzz.lua
 cdecl_type(hb_codepoint_t)
+cdecl_type(hb_tag_t)
 cdecl_union(_hb_var_int_t)
 cdecl_type(hb_var_int_t)
 
@@ -36,6 +37,7 @@ cdecl_type(hb_destroy_func_t)
 cdecl_const(HB_OT_NAME_ID_FONT_FAMILY)
 cdecl_const(HB_OT_NAME_ID_FONT_SUBFAMILY)
 cdecl_const(HB_OT_NAME_ID_FULL_NAME)
+cdecl_const(HB_OT_TAG_GSUB)
 
 cdecl_type(FT_Face)
 
@@ -44,3 +46,4 @@ cdecl_func(hb_face_create)
 cdecl_func(hb_blob_destroy)
 cdecl_func(hb_face_get_glyph_count)
 cdecl_func(hb_ft_face_create_referenced)
+cdecl_func(hb_ot_layout_table_get_feature_tags)

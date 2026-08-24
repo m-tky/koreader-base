@@ -19,6 +19,9 @@ describe("Low level font interfaces", function()
             local face = hb.hb_face_create(blob, 0)
             hb.hb_blob_destroy(blob)
             assert.are.equals(hb.hb_face_get_glyph_count(face), nglyphs)
+            local has_vert, has_vrt2 = face:hasVerticalFeatures()
+            assert.is_false(has_vert)
+            assert.is_false(has_vrt2)
             hb.hb_face_destroy(face)
 
             -- Then with FT
@@ -39,4 +42,3 @@ describe("Low level font interfaces", function()
         end)
     end)
 end)
-
