@@ -815,6 +815,9 @@ DIAG_GET5_FN(getVertExactHangingClip, ltext_get_vert_exact_hanging_clip,
     int, int, int, int, int)
 DIAG_GET7_FN(getVertExactHangingGlyph, ltext_get_vert_exact_hanging_glyph,
     int, int, int, int, int, int, int)
+DIAG_RESET_FN(resetVertFallbackSize, ltext_reset_vert_fallback_size)
+DIAG_GET3_FN(getVertFallbackSizeStats, ltext_get_vert_fallback_size,
+    int, int, int)
 
 static int hasCacheFile(lua_State *L) {
     CreDocument *doc = (CreDocument*) luaL_checkudata(L, 1, "credocument");
@@ -4736,6 +4739,8 @@ static const struct luaL_Reg credocument_meth[] = {
     {"resetVertExactHangingClip", resetVertExactHangingClip},
     {"getVertExactHangingClip",   getVertExactHangingClip},
     {"getVertExactHangingGlyph",  getVertExactHangingGlyph},
+    {"resetVertFallbackSize", resetVertFallbackSize},
+    {"getVertFallbackSizeStats", getVertFallbackSizeStats},
     {"hasCacheFile", hasCacheFile},
     {"isCacheFileStale", isCacheFileStale},
     {"invalidateCacheFile", invalidateCacheFile},
