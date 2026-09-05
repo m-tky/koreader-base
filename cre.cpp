@@ -771,6 +771,22 @@ static int isVerticalText(lua_State *L) {
         lua_pushinteger(L, a); lua_pushinteger(L, b); \
         lua_pushinteger(L, c); lua_pushinteger(L, d); return 4; }
 
+#define DIAG_GET5_FN(LuaFnName, CGetFn, T1, T2, T3, T4, T5) \
+    static int LuaFnName(lua_State *L) { \
+        T1 a; T2 b; T3 c; T4 d; T5 e; CGetFn(&a, &b, &c, &d, &e); \
+        lua_pushinteger(L, a); lua_pushinteger(L, b); \
+        lua_pushinteger(L, c); lua_pushinteger(L, d); \
+        lua_pushinteger(L, e); return 5; }
+
+#define DIAG_GET7_FN(LuaFnName, CGetFn, T1, T2, T3, T4, T5, T6, T7) \
+    static int LuaFnName(lua_State *L) { \
+        T1 a; T2 b; T3 c; T4 d; T5 e; T6 f; T7 g; \
+        CGetFn(&a, &b, &c, &d, &e, &f, &g); \
+        lua_pushinteger(L, a); lua_pushinteger(L, b); \
+        lua_pushinteger(L, c); lua_pushinteger(L, d); \
+        lua_pushinteger(L, e); lua_pushinteger(L, f); \
+        lua_pushinteger(L, g); return 7; }
+
 DIAG_RESET_FN(resetVertBleedCounters, ltext_reset_vert_bleed)
 DIAG_GET2_FN(getVertBleedStats,    ltext_get_vert_bleed,    int, int)
 DIAG_RESET_FN(resetVertCharOverlapCounters, ltext_reset_vert_char_overlap)
@@ -795,8 +811,10 @@ DIAG_RESET_FN(resetVertSingleImagePlacement, ltext_reset_vert_single_image_place
 DIAG_GET4_FN(getVertSingleImagePlacement, ltext_get_vert_single_image_placement,
     int, int, int, int)
 DIAG_RESET_FN(resetVertExactHangingClip, ltext_reset_vert_exact_hanging_clip)
-DIAG_GET3_FN(getVertExactHangingClip, ltext_get_vert_exact_hanging_clip,
-    int, int, int)
+DIAG_GET5_FN(getVertExactHangingClip, ltext_get_vert_exact_hanging_clip,
+    int, int, int, int, int)
+DIAG_GET7_FN(getVertExactHangingGlyph, ltext_get_vert_exact_hanging_glyph,
+    int, int, int, int, int, int, int)
 
 static int hasCacheFile(lua_State *L) {
     CreDocument *doc = (CreDocument*) luaL_checkudata(L, 1, "credocument");
@@ -4717,6 +4735,7 @@ static const struct luaL_Reg credocument_meth[] = {
     {"getVertSingleImagePlacement",   getVertSingleImagePlacement},
     {"resetVertExactHangingClip", resetVertExactHangingClip},
     {"getVertExactHangingClip",   getVertExactHangingClip},
+    {"getVertExactHangingGlyph",  getVertExactHangingGlyph},
     {"hasCacheFile", hasCacheFile},
     {"isCacheFileStale", isCacheFileStale},
     {"invalidateCacheFile", invalidateCacheFile},
