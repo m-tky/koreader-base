@@ -818,6 +818,25 @@ DIAG_GET7_FN(getVertExactHangingGlyph, ltext_get_vert_exact_hanging_glyph,
 DIAG_RESET_FN(resetVertFallbackSize, ltext_reset_vert_fallback_size)
 DIAG_GET3_FN(getVertFallbackSizeStats, ltext_get_vert_fallback_size,
     int, int, int)
+DIAG_RESET_FN(resetVertDecorationTrace, ltext_reset_vert_decoration_trace)
+DIAG_RESET_FN(stopVertDecorationTrace, ltext_stop_vert_decoration_trace)
+DIAG_GET2_FN(getVertDecorationTraceStats, ltext_get_vert_decoration_trace_stats,
+    int, int)
+static int getVertDecorationTraceEvent(lua_State *L) {
+    luaL_checkudata(L, 1, "credocument");
+    int kind, owner, character, x0, y0, x1, y1;
+    int index = luaL_checkinteger(L, 2);
+    if ( !ltext_get_vert_decoration_trace_event(index, &kind, &owner,
+            &character, &x0, &y0, &x1, &y1) ) {
+        lua_pushnil(L);
+        return 1;
+    }
+    lua_pushinteger(L, kind); lua_pushinteger(L, owner);
+    lua_pushinteger(L, character); lua_pushinteger(L, x0);
+    lua_pushinteger(L, y0); lua_pushinteger(L, x1);
+    lua_pushinteger(L, y1);
+    return 7;
+}
 
 static int hasCacheFile(lua_State *L) {
     CreDocument *doc = (CreDocument*) luaL_checkudata(L, 1, "credocument");
@@ -4716,6 +4735,10 @@ static const struct luaL_Reg credocument_meth[] = {
     {"isVerticalText", isVerticalText},
     {"resetVertBleedCounters", resetVertBleedCounters},
     {"getVertBleedStats", getVertBleedStats},
+    {"resetVertDecorationTrace", resetVertDecorationTrace},
+    {"stopVertDecorationTrace", stopVertDecorationTrace},
+    {"getVertDecorationTraceStats", getVertDecorationTraceStats},
+    {"getVertDecorationTraceEvent", getVertDecorationTraceEvent},
     {"resetVertCharOverlapCounters", resetVertCharOverlapCounters},
     {"getVertCharOverlapStats", getVertCharOverlapStats},
     {"resetRubyDiag", resetRubyDiag},
