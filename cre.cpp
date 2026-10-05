@@ -742,9 +742,35 @@ static int isBuiltDomStale(lua_State *L) {
     return 1;
 }
 
-static int isVerticalText(lua_State *L) {
+static int hasVerticalContent(lua_State *L) {
     CreDocument *doc = (CreDocument*) luaL_checkudata(L, 1, "credocument");
-    lua_pushboolean(L, doc->text_view->isVerticalText());
+    lua_pushboolean(L, doc->text_view->hasVerticalContent());
+    return 1;
+}
+
+// Page numbers use the same 1-based internal indexing as getCurrentPage(true).
+static int getPageWritingMode(lua_State *L) {
+    CreDocument *doc = (CreDocument*) luaL_checkudata(L, 1, "credocument");
+    int mode = doc->text_view->getPageWritingMode(luaL_optint(L, 2, 0) - 1);
+    lua_pushstring(L, css_wm_is_vertical(mode) ? "vertical-rl" : "horizontal-tb");
+    return 1;
+}
+
+static int isVerticalPosition(lua_State *L) {
+    CreDocument *doc = (CreDocument*) luaL_checkudata(L, 1, "credocument");
+    lua_pushboolean(L, doc->text_view->isVerticalPosition(luaL_checkint(L, 2)));
+    return 1;
+}
+
+// Dispatch on the page containing a screen point, including a mixed-mode spread.
+static bool isVerticalScreenPoint(LVDocView *tv, int x, int y) {
+    lvPoint pt(x, y);
+    return tv->windowToDocPoint(pt, true) && tv->isVerticalPosition(pt.y);
+}
+
+static int isVerticalAtScreenPoint(lua_State *L) {
+    CreDocument *doc = (CreDocument*) luaL_checkudata(L, 1, "credocument");
+    lua_pushboolean(L, isVerticalScreenPoint(doc->text_view, luaL_checkint(L, 2), luaL_checkint(L, 3)));
     return 1;
 }
 
@@ -2106,12 +2132,11 @@ static int getWordFromPosition(lua_State *L) {
 	int y_offset = tv->GetPos() - (tv->getPageHeaderHeight() + margin.top) * (tv->getViewMode()==DVM_PAGES);
 
 	LVPageWordSelector sel(tv);
-	if (tv->isVerticalText()) {
+	if (isVerticalScreenPoint(tv, x, y)) {
 		// Vertical-rl: word marks are in screen coords (via docToWindowPoint).
 		// LVPageWordSelector::selectWord(x, y) uses screen coords for findNearestWord,
 		// so pass the original screen position directly (no margin subtraction needed
 		// for vertical text since columns are identified by x, not margin-relative).
-		// TODO (Phase 2): per-element writing mode for mixed-mode documents.
 		sel.selectWord(x, y);
 	} else {
 		sel.selectWord(x - x_offset, y + y_offset);
@@ -2126,7 +2151,7 @@ static int getWordFromPosition(lua_State *L) {
 			lua_pushstring(L, "word");
 			lua_pushstring(L, UnicodeToLocal(word->getText()).c_str());
 			lua_rawset(L, -3);
-			if (tv->isVerticalText()) {
+			if (tv->isVerticalPosition(rect.top)) {
 				// In vertical-rl (Y=X swap), getRectEx returns doc-space coords:
 				//   rect.left/right = doc_x  (inline direction → screen_y)
 				//   rect.top/bottom = doc_y  (block/column direction → screen_x)
@@ -2356,7 +2381,7 @@ static int getTextFromPositions(lua_State *L) {
                     // in the right margin.
                     r.getEnd().prevVisibleChar(false); // thisBlockOnly=false
                 }
-                else if ( tv->isVerticalText()
+                else if ( tv->isVerticalPosition(glyph_rect.top)
                           && glyphpt.x + glyph_rect.height() / 2 <= refpt.x ) {
                     // Vertical-rl: glyph is in a more-leftward column.  Fire when refpt
                     // is past the midpoint between K+1 and K (glyph_rect.height() is
@@ -2427,7 +2452,7 @@ static int getTextFromPositions(lua_State *L) {
             r.getStart().prevVisibleWordStart(true);
         }
         if ( r.getEnd().isVisibleWordChar() && !r.getEnd().isVisibleWordStart()
-                && !tv->isVerticalText() ) {
+                && !tv->isVerticalPosition(r.getEnd().toPoint().y) ) {
             // As above (don't grab next CJK).
             // Skip for vertical-rl: a CJK char at the bottom of a column
             // would advance into the NEXT column's top, creating an
@@ -2617,6 +2642,7 @@ void lua_pushLineRect(lua_State *L, int left, int top, int right, int bottom, in
 }
 
 bool docToWindowRect(LVDocView *tv, lvRect &rc) {
+    const bool is_vertical = tv->isVerticalPosition(rc.top);
     lvPoint topLeft = rc.topLeft();
     lvPoint bottomRight = rc.bottomRight();
     bool topInPage = false;
@@ -2635,7 +2661,7 @@ bool docToWindowRect(LVDocView *tv, lvRect &rc) {
     if (topInPage && bottomInPage) {
         // For vertical-rl text, increasing doc_y → decreasing screen_x.
         // After conversion, the rect's left/right may be swapped. Normalize.
-        if (tv->isVerticalText() && rc.left > rc.right) {
+        if (is_vertical && rc.left > rc.right) {
             int tmp = rc.left; rc.left = rc.right; rc.right = tmp;
         }
         return true;
@@ -2650,7 +2676,7 @@ bool docToWindowRect(LVDocView *tv, lvRect &rc) {
     // spans the whole page width (the user-visible 90° rotation symptom on
     // multi-page highlight continuations).  Reject the rect: it belongs to
     // a different page.
-    if (tv->isVerticalText()) {
+    if (is_vertical) {
         return false;
     }
     if (bottomInPage && !topInPage) {
@@ -2667,9 +2693,6 @@ bool docToWindowRect(LVDocView *tv, lvRect &rc) {
                 }
             }
             rc.setTopLeft(topLeft);
-            if (tv->isVerticalText() && rc.left > rc.right) {
-                int tmp = rc.left; rc.left = rc.right; rc.right = tmp;
-            }
             return true;
         }
     }
@@ -2679,9 +2702,6 @@ bool docToWindowRect(LVDocView *tv, lvRect &rc) {
         bottomRight = rc.bottomRight();
         if (tv->docToWindowPoint(bottomRight, true, true)) {
             rc.setBottomRight(bottomRight);
-            if (tv->isVerticalText() && rc.left > rc.right) {
-                int tmp = rc.left; rc.left = rc.right; rc.right = tmp;
-            }
             return true;
         }
     }
@@ -2716,7 +2736,7 @@ void lua_pushSegmentsFromRange(lua_State *L, CreDocument *doc, ldomXRange *range
     // Fix: obtain "de"'s rect directly (offset-1 from the range end), then
     //   (A) drop any trailing rects whose column advance > "de"'s column, and
     //   (B) extend the last remaining rect's .right to "de"'s .right.
-    if (tv->isVerticalText() && rects.length() > 0) {
+    if (rects.length() > 0 && tv->isVerticalPosition(rects[rects.length()-1].top)) {
         ldomXPointerEx rangeEnd = range->getEnd();
         // Find "de" = the last character actually IN the selection.
         // rangeEnd points to the char AFTER "de" (set by setOffset+1 in
@@ -4732,7 +4752,11 @@ static const struct luaL_Reg credocument_meth[] = {
     {"setCallback", setCallback},
     /* --- control methods ---*/
     {"isBuiltDomStale", isBuiltDomStale},
-    {"isVerticalText", isVerticalText},
+    {"isVerticalText", hasVerticalContent}, // document-wide compatibility query
+    {"hasVerticalContent", hasVerticalContent},
+    {"getPageWritingMode", getPageWritingMode},
+    {"isVerticalPosition", isVerticalPosition},
+    {"isVerticalAtScreenPoint", isVerticalAtScreenPoint},
     {"resetVertBleedCounters", resetVertBleedCounters},
     {"getVertBleedStats", getVertBleedStats},
     {"resetVertDecorationTrace", resetVertDecorationTrace},
