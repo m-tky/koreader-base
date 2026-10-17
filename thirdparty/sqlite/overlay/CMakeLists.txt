@@ -40,11 +40,18 @@ while(CHECKS)
     endif()
 endwhile()
 
+# SQLite 3.54.0 can overrun the reusable opcode buffer on 32-bit builds
+# when memory statistics are disabled. Keep allocation rounding enabled there.
+set(SQLITE_MEMSTATUS 0)
+if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+    set(SQLITE_MEMSTATUS 1)
+endif()
+
 add_library(sqlite3)
 set_target_properties(sqlite3 PROPERTIES SOVERSION 0)
 target_compile_definitions(sqlite3 PRIVATE
     ${DEFINITIONS}
-    SQLITE_DEFAULT_MEMSTATUS=0
+    SQLITE_DEFAULT_MEMSTATUS=${SQLITE_MEMSTATUS}
     SQLITE_DEFAULT_WAL_SYNCHRONOUS=1
     SQLITE_DQS=0
     SQLITE_ENABLE_FTS5
