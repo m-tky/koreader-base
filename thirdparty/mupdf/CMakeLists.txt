@@ -21,6 +21,8 @@ list(APPEND PATCH_FILES
     visibility.patch
     # Backport addition of `passthrough` member to `fz_device` (from b20077eb2).
     passthrough_device.patch
+    # Add support for <ruby> furigana annotation in HTML documents.
+    ruby-support.patch
 )
 
 # Remove unnecessary vendored thirdparty libraries.
