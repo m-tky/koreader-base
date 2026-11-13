@@ -263,4 +263,36 @@ describe("mupdf module", function()
         </html>]], "html", "spec/base/unit/data")
         doc:close()
     end)
+
+    describe("page text words", function()
+        local function open_html_page(html)
+            local doc = M.openDocumentFromText(html, "html", "spec/base/unit/data")
+            doc:layoutDocument(400, 600, 16)
+            return doc, doc:openPage(1)
+        end
+
+        local function words_of(page, split_cjk)
+            local words = {}
+            for _, line in ipairs(page:getPageText(split_cjk)) do
+                for _, word in ipairs(line) do
+                    table.insert(words, word.word)
+                end
+            end
+            return words
+        end
+
+        it("should end a word before a kanji instead of after it", function()
+            local doc, page = open_html_page("<html><body><p>かな漢字</p></body></html>")
+            assert.is.same({ "かな", "漢", "字" }, words_of(page, false))
+            page:close()
+            doc:close()
+        end)
+
+        it("should split kana into single characters on request", function()
+            local doc, page = open_html_page("<html><body><p>かな漢字</p></body></html>")
+            assert.is.same({ "か", "な", "漢", "字" }, words_of(page, true))
+            page:close()
+            doc:close()
+        end)
+    end)
 end)

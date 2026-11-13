@@ -449,6 +449,24 @@ local function is_unicode_wspace(c)
         c == 0x205F or --  Medium mathematical space
         c == 0x3000 --  Ideographic space
 end
+
+-- Characters that end a word. CJK text has no spaces, so these are the
+-- word boundaries we have.
+local function is_cjk_char(c)
+    return c >= 0x4e00 and c <= 0x9FFF or -- CJK Unified Ideographs
+        c >= 0x2000 and c <= 0x206F or -- General Punctuation
+        c >= 0x3000 and c <= 0x303F or -- CJK Symbols and Punctuation
+        c >= 0x3400 and c <= 0x4DBF or -- CJK Unified Ideographs Extension A
+        c >= 0xF900 and c <= 0xFAFF or -- CJK Compatibility Ideographs
+        c >= 0xFF01 and c <= 0xFFEE or -- Halfwidth and Fullwidth Forms
+        c >= 0x20000 and c <= 0x2A6DF  -- CJK Unified Ideographs Extension B
+end
+
+local function is_kana_char(c)
+    return c >= 0x3040 and c <= 0x30FF or -- Hiragana, Katakana
+        c >= 0x31F0 and c <= 0x31FF -- Katakana Phonetic Extensions
+end
+
 local function is_unicode_bullet(c)
     -- Not all of them are strictly bullets, but will do for our usage here
     return c == 0x2022 or --  Bullet
@@ -496,11 +514,14 @@ here (for now)
 MuPDFs API provides text as single char information
 that is collected in "spans". we use a span as a "line"
 in Lua output and segment spans into words by looking
-for space characters.
+for space and CJK characters.
 
 will return an empty table if we have no text
+
+split_cjk: keep every CJK character (kana included) as a word of its own,
+for callers that select text character by character.
 --]]
-function page_mt.__index:getPageText()
+function page_mt.__index:getPageText(split_cjk)
     -- first, we run the page through a special device, the text_device
     local text_page = W.mupdf_new_stext_page_from_page(self.ctx, self.page, nil)
     if text_page == nil then merror(self.ctx, "cannot alloc text_page") end
@@ -541,23 +562,23 @@ function page_mt.__index:getPageText()
                                 -- ignore and end word
                                 break
                             end
+                            local word_boundary = is_cjk_char(ch.c) or (split_cjk and is_kana_char(ch.c))
+                            if word_boundary and textlen > 0 then
+                                -- end the word before it, so the character
+                                -- starts its own word instead of being glued
+                                -- to the text in front of it
+                                break
+                            end
                             textlen = textlen + M.fz_runetochar(textbuf + textlen, ch.c)
                             local char_bbox = ffi.new("fz_rect")
                             W.mupdf_fz_rect_from_quad(char_bbox, ch.quad)
                             W.mupdf_fz_union_rect(word_bbox, char_bbox)
                             W.mupdf_fz_union_rect(line_bbox, char_bbox)
-                            if ch.c >= 0x4e00 and ch.c <= 0x9FFF or -- CJK Unified Ideographs
-                                ch.c >= 0x2000 and ch.c <= 0x206F or -- General Punctuation
-                                ch.c >= 0x3000 and ch.c <= 0x303F or -- CJK Symbols and Punctuation
-                                ch.c >= 0x3400 and ch.c <= 0x4DBF or -- CJK Unified Ideographs Extension A
-                                ch.c >= 0xF900 and ch.c <= 0xFAFF or -- CJK Compatibility Ideographs
-                                ch.c >= 0xFF01 and ch.c <= 0xFFEE or -- Halfwidth and Fullwidth Forms
-                                ch.c >= 0x20000 and ch.c <= 0x2A6DF  -- CJK Unified Ideographs Extension B
-                            then
-                                -- end word
+                            ch = ch.next
+                            if word_boundary then
+                                -- a single character word
                                 break
                             end
-                            ch = ch.next
                         end
                         -- add word to line
                         if word_bbox.x0 < word_bbox.x1 and word_bbox.y0 < word_bbox.y1 then
@@ -573,7 +594,9 @@ function page_mt.__index:getPageText()
                             break
                         end
 
-                        ch = ch.next
+                        if is_unicode_wspace(ch.c) then
+                            ch = ch.next
+                        end
                     end
 
                     if line_bbox.x0 < line_bbox.x1 and line_bbox.y0 < line_bbox.y1 then
