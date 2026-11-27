@@ -19,7 +19,7 @@ list(APPEND BUILD_CMD COMMAND ninja)
 list(APPEND INSTALL_CMD COMMAND ${CMAKE_COMMAND} --install .)
 
 external_project(
-    DOWNLOAD GIT 69935aa3e82bc47623e10c4833d5044939e75474 # release.3.5.30.1-5-g69935aa
+    DOWNLOAD GIT 4f2359aa9533f6f125102cec874aaf6e718585f0 # release.3.5.30.1-10-g4f2359a
     https://gitlab.com/koreader/djvulibre.git
     PATCH_OVERLAY overlay
     PATCH_FILES ${PATCH_FILES}
