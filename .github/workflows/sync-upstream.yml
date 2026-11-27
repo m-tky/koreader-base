@@ -30,6 +30,8 @@ jobs:
           git config user.name "github-actions[bot]"
 
       - name: Prepare upstream-sync pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           resolve_ours() {
             file_path="$1"
@@ -43,12 +45,15 @@ jobs:
           }
 
           git remote add upstream https://github.com/koreader/koreader-base.git
-          git fetch upstream master
+          # Follow the base revision selected by upstream KOReader, not newer
+          # base commits that have not yet been integrated by the parent.
+          upstream_pin="$(gh api 'repos/koreader/koreader/contents/base?ref=master' --jq .sha)"
+          git fetch upstream "$upstream_pin:refs/remotes/upstream/koreader-pin"
           git fetch origin master
           git fetch origin upstream-sync/master || true
           git checkout -B upstream-sync/master origin/master
 
-          if ! git merge upstream/master --no-edit; then
+          if ! git merge upstream/koreader-pin --no-edit; then
             # The fork intentionally owns the CRengine source URL and pin.
             # Resolve only those gitlinks to our pre-merge values; all source
             # conflicts remain a human review item.
@@ -67,12 +72,12 @@ jobs:
 
           # Even when Git can merge the gitlink, retain this fork's CRengine
           # source URL and revision rather than silently switching to upstream.
-          if git rev-parse --verify ORIG_HEAD > /dev/null 2>&1; then
-            git checkout ORIG_HEAD -- .gitmodules thirdparty/kpvcrlib/crengine
-            git commit --amend --no-edit
+          git checkout origin/master -- .gitmodules thirdparty/kpvcrlib/crengine
+          if ! git diff --cached --quiet; then
+            git commit -m "sync: retain tategumi CRengine pin"
           fi
 
-          if git diff --quiet origin/master..HEAD; then
+          if git merge-base --is-ancestor HEAD origin/master; then
             echo "NO_UPSTREAM_CHANGES=true" >> $GITHUB_ENV
             exit 0
           fi
@@ -86,7 +91,7 @@ jobs:
         with:
           script: |
             const title = 'Upstream sync: koreader/koreader-base';
-            const body = `Automated merge candidate from \`koreader/koreader-base:master\`.\n\nThe CRengine URL and pin are intentionally retained from this fork. Review CI before merging.\n\nWorkflow run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = `Automated merge candidate from the base revision pinned by \`koreader/koreader:master\`.\n\nThe CRengine URL and pin are intentionally retained from this fork. Review CI before merging.\n\nWorkflow run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             const { data: pulls } = await github.rest.pulls.list({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -105,7 +110,7 @@ jobs:
         with:
           script: |
             const title = 'Upstream sync blocked: merge conflict';
-            const body = `Automatic merge from \`koreader/koreader-base:master\` is blocked.\n\nConflicting paths: \`${process.env.MERGE_CONFLICTS}\`\n\nThe workflow has already retained this fork's CRengine gitlink; resolve the remaining source conflicts against the current fork head, then close this issue.\n\nWorkflow run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = `Automatic merge of the base revision pinned by \`koreader/koreader:master\` is blocked.\n\nConflicting paths: \`${process.env.MERGE_CONFLICTS}\`\n\nThe workflow has already retained this fork's CRengine gitlink; resolve the remaining source conflicts against the current fork head, then close this issue.\n\nWorkflow run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             const { data: issues } = await github.rest.issues.listForRepo({ owner: context.repo.owner, repo: context.repo.repo, state: 'open', labels: 'upstream-sync' });
             const issue = issues.find(issue => issue.title === title);
             if (issue) {
